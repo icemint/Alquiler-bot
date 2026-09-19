@@ -1,0 +1,22 @@
+services:
+  monitor:
+    build: .
+    image: caba-rental-monitor:latest
+    container_name: caba-rental-monitor
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Overrides .env so the database always lands on the volume.
+      DATABASE_PATH: /data/listings.sqlite3
+    volumes:
+      - listings-data:/data
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  listings-data:

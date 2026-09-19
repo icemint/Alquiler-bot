@@ -1,0 +1,334 @@
+# CABA Rental Monitor
+
+Watches Buenos Aires (CABA) rental listings and sends you a Telegram message the
+moment a new one matches your criteria — Recoleta and Barrio Norte, Departamento
+/ Casa / PH, at least 50 m², up to ARS 1.000.000 per month, **expensas excluded
+from the price limit**.
+
+Every five minutes it asks each source once, normalizes what it finds into a
+single internal format, filters, and notifies only listings it has never seen
+before. The SQLite database makes that memory survive restarts.
+
+```
+[20:20] MercadoLibre: 89 listings found, 55 matching, 55 new
+[20:22] ArgenProp: 28 listings found, 2 matching, 1 new
+[20:22] Notifications: 3 sent
+```
+
+---
+
+## 1. What it does
+
+- Polls **MercadoLibre Inmuebles** and **ArgenProp** on a fixed interval
+  (ZonaProp is included but disabled — see [Sources](#3-sources-and-how-they-are-accessed)).
+- Normalizes every advertisement into one `Listing` model, whatever the source.
+- Filters on operation, property type, neighborhood, area, price and currency.
+- Remembers every listing it has seen, so nothing is announced twice — not after
+  a restart, not after a redeploy.
+- Sends a Telegram message per new listing, or one grouped digest when a single
+  cycle turns up many.
+- Answers `/start`, `/status` and `/stats` in the same chat.
+
+### What it deliberately does *not* do
+
+- It does not add expensas to the price when comparing against `MAX_RENT`.
+- It does not notify a listing whose price or area it could not read reliably
+  ("desde" prices, ads quoting both ARS and USD, cards with no m² shown).
+- It does not decide a neighborhood by searching for text in an address. Only a
+  site's structured location field counts (see [Neighborhoods](#8-changing-the-search-criteria)).
+- It does not bypass CAPTCHAs, Cloudflare or any other access control.
+
+---
+
+## 2. Architecture
+
+```
+monitor/
+├── config.py            environment/file configuration, search criteria
+├── neighborhoods.py     canonical neighborhood map (aliases, per-source slugs and ids)
+├── models/              Listing (the normalized model) and ScrapeResult
+├── scrapers/
+│   ├── base.py          HttpClient (timeouts, retries, pacing, block detection)
+│   ├── argenprop/       scraper + parser
+│   ├── mercadolibre/    scraper + parser + optional official-API adapter
+│   └── zonaprop/        disabled strategy (Cloudflare), kept isolated
+├── services/
+│   ├── filtering/       criteria → accept/reject with a reason
+│   ├── deduplication/   dedupe key, "is this new?", restart safety
+│   └── notification/    message formatting + Telegram delivery
+├── database/            SQLite schema and repository
+├── scheduler/           the monitoring cycle and the loop
+└── telegram/            /start, /status, /stats command bot
+```
+
+The dependency direction is one-way: scrapers know nothing about SQLite or
+Telegram, the formatter knows nothing about the Telegram API, and the scheduler
+is the only place that wires them together. Adding a fourth source means adding
+one package under `scrapers/`; adding email or Slack notifications means adding
+one `Notifier` implementation.
+
+**Per-source isolation.** A scraper never raises into the scheduler: failures
+come back as a `ScrapeResult` with status `blocked`, `error` or `disabled`, are
+recorded in `source_state`, and the source is backed off (15 min × consecutive
+failures, capped at 2 h) while the other sources keep working. A blocked source
+is reported as *blocked*, never as "0 listings found" — those mean different
+things.
+
+---
+
+## 3. Sources and how they are accessed
+
+| Source | Method | Requests per cycle | Status |
+|---|---|---|---|
+| MercadoLibre | Server-rendered search pages, filtered by URL | ~6 (2 neighborhoods × 3 types) | Working, verified live |
+| ArgenProp | Server-rendered search pages, newest-first | 3, on its own 10-minute interval | Working, verified live |
+| ZonaProp | — | 0 | Disabled: Cloudflare challenge |
+
+**MercadoLibre.** Its URL grammar carries every filter we need, which keeps the
+request count tiny and the parsing honest:
+
+```
+/departamentos/alquiler/capital-federal/recoleta/_PriceRange_0ARS-1000000ARS_TOTAL*AREA_50-*
+```
+
+Barrio Norte is its own location slug there, so the neighborhood comes from the
+site's structured field. A second page is fetched only when the first came back
+completely full. An adapter for MercadoLibre's **official API** is included
+(`MERCADOLIBRE_MODE=api`), but every endpoint now requires OAuth credentials,
+so it is unverified — the HTML path is the one that was tested end to end.
+
+**ArgenProp.** Also server-rendered, and each card repeats its key values as
+attributes (`idaviso`, `idbarrio`, `idmoneda`, `montooperacion`), which the
+parser cross-checks against the printed text. Both neighborhoods fit in one URL
+(`/departamentos/alquiler/barrio-norte-o-recoleta?orden-masnuevos`; robots.txt
+forbids three-way `-o-` combinations, two are fine). Its AWS WAF answers `202`
+with an empty body when it dislikes your rate, and that block outlives short
+backoffs — hence the 20-second delay between requests and the separate
+`ARGENPROP_MIN_INTERVAL_SECONDS` interval.
+
+**ZonaProp.** Every URL, including the sitemaps listed in its own robots.txt,
+returns `403` with `cf-mitigated: challenge` and Cloudflare's "Just a moment…"
+page. There is no public API and no RSS feed. Getting past it would mean
+executing the anti-bot challenge, so the source ships disabled: it reports
+itself once per cycle and makes no requests. Three ways to change that:
+
+1. `ZONAPROP_STRATEGY=provider` plus a commercial scraping provider that deals
+   with the challenge on its side — you supply `ZONAPROP_PROVIDER_URL` and
+   `ZONAPROP_API_KEY` and implement `monitor/scrapers/zonaprop/provider.py`;
+2. create a saved-search alert on ZonaProp and ingest those emails;
+3. `ZONAPROP_STRATEGY=http` to re-check whether the challenge is still there —
+   expect it to report `blocked`.
+
+**A note on terms of service.** ArgenProp's robots.txt permits the paths used
+here. MercadoLibre's robots.txt blocks AI-crawler user agents rather than
+ordinary clients, but scraping is still contrary to its terms — its official API
+with your own credentials is the clean route. Keep the polling gentle: one cycle
+every five minutes, not dozens of requests a second.
+
+---
+
+## 4. Creating a Telegram bot
+
+1. Open Telegram and message [@BotFather](https://t.me/BotFather).
+2. Send `/newbot`, pick a display name, then a username ending in `bot`.
+3. BotFather replies with a token like `123456789:AAF...`. That is
+   `TELEGRAM_BOT_TOKEN`. Keep it secret — anyone holding it controls the bot.
+
+## 5. Finding your chat ID
+
+Send your new bot any message first (a bot cannot start a conversation), then:
+
+```bash
+curl -s "https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates" | python3 -m json.tool
+```
+
+Look for `"chat": {"id": 123456789, ...}` — that number is `TELEGRAM_CHAT_ID`.
+For a group, add the bot to the group, post a message there, and use the group's
+negative id (e.g. `-1001234567890`).
+
+The bot only answers the configured chat; commands from anywhere else are
+ignored and logged.
+
+---
+
+## 6. Environment variables
+
+Copy `.env.example` to `.env` and fill it in. Everything except the two Telegram
+secrets has a working default.
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `TELEGRAM_BOT_TOKEN` | — | Bot token from BotFather. Without it, notifications go to the log. |
+| `TELEGRAM_CHAT_ID` | — | Chat that receives notifications and may issue commands. |
+| `MAX_RENT` | `1000000` | Maximum **rent**. Expensas are never added to it. |
+| `MIN_AREA` | `50` | Minimum area in m². |
+| `CURRENCY` | `ARS` | Listings in any other currency are rejected. |
+| `NEIGHBORHOODS` | `Recoleta,Barrio Norte` | Must exist in the neighborhood map. |
+| `PROPERTY_TYPES` | `Departamento,Casa,PH` | Any subset of the three. |
+| `CHECK_INTERVAL` | `5` | Minutes between cycles. |
+| `SOURCES` | `mercadolibre,argenprop` | Which sources to poll. |
+| `NOTIFY_ON_FIRST_RUN` | `false` | On an empty database, record what exists without notifying. |
+| `DATABASE_PATH` | `data/listings.sqlite3` | SQLite file. `/data/listings.sqlite3` in Docker. |
+| `LOG_LEVEL` / `LOG_FORMAT` | `INFO` / `text` | `LOG_FORMAT=json` emits one JSON object per line. |
+| `TZ` | `America/Argentina/Buenos_Aires` | Timezone used in messages and logs. |
+| `TELEGRAM_GROUP_THRESHOLD` | `5` | More new listings than this in one cycle are grouped into a digest. |
+| `MAX_NOTIFICATIONS_PER_CYCLE` | `20` | Upper bound on messages per cycle. |
+| `ARGENPROP_MIN_INTERVAL_SECONDS` | `600` | ArgenProp is polled at most this often. |
+| `ARGENPROP_REQUEST_DELAY` / `MERCADOLIBRE_REQUEST_DELAY` | `20` / `2` | Seconds between requests to that host. |
+| `ARGENPROP_MAX_PAGES` / `MERCADOLIBRE_MAX_PAGES` | `1` / `3` | Pagination limit per search. |
+| `MERCADOLIBRE_MODE` | `html` | `api` uses the official API and needs `MELI_ACCESS_TOKEN` (unverified). |
+| `ZONAPROP_STRATEGY` | `disabled` | `http` or `provider` — see above. |
+| `CONFIG_FILE` | — | Optional JSON file with the same keys. Environment variables win. |
+| `NEIGHBORHOOD_MAP_FILE` | — | Optional JSON replacing the built-in neighborhood map. |
+
+Secrets are read from the environment only; nothing is hardcoded.
+
+---
+
+## 7. Running
+
+### Locally
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+cp .env.example .env          # then fill in the Telegram values
+
+# one cycle, then exit - the quickest way to see whether the scrapers work
+set -a && . ./.env && set +a
+.venv/bin/python -m monitor --once
+
+# run continuously
+.venv/bin/python -m monitor
+```
+
+Useful flags: `--once` (single cycle) and `--no-telegram-commands` (skip the
+command poller). Stop with `Ctrl-C`; shutdown is graceful.
+
+### With Docker
+
+```bash
+cp .env.example .env          # fill in the Telegram values
+docker compose up -d
+docker compose logs -f
+```
+
+The SQLite file lives on the named volume `listings-data`, so
+`docker compose down && docker compose up -d` keeps every listing already seen
+and sends nothing twice. `docker compose down -v` deletes the volume — the next
+start then treats every current listing as already-seen (because
+`NOTIFY_ON_FIRST_RUN=false`) rather than flooding you.
+
+### Tests and linting
+
+```bash
+.venv/bin/pip install -r requirements-dev.txt
+.venv/bin/python -m pytest -q
+.venv/bin/python -m ruff check .
+.venv/bin/python -m ruff format --check .
+```
+
+The parser tests run against HTML captured from the live sites
+(`tests/fixtures/`), so they never touch the network.
+
+---
+
+## 8. Changing the search criteria
+
+Edit `.env` (or the `CONFIG_FILE` JSON) and restart:
+
+```bash
+MAX_RENT=1500000
+MIN_AREA=45
+PROPERTY_TYPES=Departamento,PH
+NEIGHBORHOODS=Recoleta
+```
+
+**Adding a neighborhood** takes one more step, because each site names and
+codes neighborhoods differently. Copy the built-in map from
+`monitor/neighborhoods.py` into a JSON file, add your entry, and point
+`NEIGHBORHOOD_MAP_FILE` at it:
+
+```json
+{
+  "Palermo": {
+    "aliases": ["palermo"],
+    "slugs": {"mercadolibre": ["palermo"], "argenprop": ["palermo"]},
+    "ids": {"argenprop": ["12617"]}
+  }
+}
+```
+
+- `slugs` are what appears in each site's search URL.
+- `ids` are the site's internal location ids. ArgenProp prints the sub-barrio
+  "Parque Las Heras" on cards it files under `idbarrio=4` (Barrio Norte), so the
+  id — not the printed label — is what gets such listings right.
+- `aliases` only ever match a site's structured location label, never an address.
+
+A neighborhood that is not in the map is rejected at startup with an
+explanation, rather than silently matching nothing.
+
+---
+
+## 9. Troubleshooting
+
+**Nothing arrives at all.** Check `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID`: when
+they are missing the service logs the message instead of sending it, and says so
+at startup. Send `/status` to the bot — silence means the token or chat id is
+wrong. Remember that a fresh database stays quiet on its first cycle by design.
+
+**A source says `blocked`.** ArgenProp's WAF returns `202` with an empty body
+when polled too hard; the source backs itself off automatically. If it persists,
+raise `ARGENPROP_MIN_INTERVAL_SECONDS` and `ARGENPROP_REQUEST_DELAY`. ZonaProp
+reports `disabled` by design.
+
+**A source says `error`.** Sites change their markup. Run one cycle with
+`LOG_LEVEL=DEBUG` to see the URL, then check whether the page still contains the
+expected structure:
+
+```bash
+LOG_LEVEL=DEBUG .venv/bin/python -m monitor --once
+curl -s -A "Mozilla/5.0" "<the url from the log>" | grep -c 'poly-component__title'   # MercadoLibre
+curl -s -A "Mozilla/5.0" "<the url from the log>" | grep -c 'data-item-card'          # ArgenProp
+```
+
+A count of `0` means the markup moved: update the selectors in that source's
+`parser.py` and refresh the fixture in `tests/fixtures/`.
+
+**Found many, matched none.** That is usually correct, and the log says why —
+each cycle reports its rejection reasons:
+
+```
+rejected="{'area_below_min': 30, 'currency_not_allowed': 4}"
+```
+
+`currency_not_allowed` means USD listings, `area_missing` means the card showed
+no m² (common on ArgenProp), `price_unreliable` means a "desde" price or an ad
+quoting both currencies. Note that MercadoLibre filters server-side on *total*
+area while its cards usually print *covered* area, so a listing with 45 m²
+covered and 55 m² total is rejected here; lower `MIN_AREA` slightly if you want
+those.
+
+**Inspecting the database.**
+
+```bash
+sqlite3 data/listings.sqlite3 \
+  "SELECT source, neighborhood, price, area_m2, reject_reason FROM listings ORDER BY first_seen_at DESC LIMIT 20;"
+sqlite3 data/listings.sqlite3 "SELECT * FROM source_state;"
+```
+
+**Re-sending everything on purpose.** Delete the database file (or the Docker
+volume) and set `NOTIFY_ON_FIRST_RUN=true` for one run.
+
+---
+
+## 10. Known limitations
+
+- ZonaProp is unavailable without a third-party provider or an anti-bot bypass.
+- The MercadoLibre official-API adapter is written but unverified: it needs
+  OAuth credentials this project does not have.
+- ArgenProp cards sometimes omit m² entirely; those listings are stored but not
+  notified, because an unknown area cannot be compared against `MIN_AREA`.
+- Listings are read from search result pages only. Detail pages are never
+  fetched, which keeps the request rate low but means a field absent from the
+  card is absent here too.

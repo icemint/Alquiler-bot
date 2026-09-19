@@ -1,0 +1,45 @@
+{
+  "_comment": "SYNTHETIC: built from MercadoLibre's documented /sites/MLA/search response shape, NOT from a live call (the API requires OAuth credentials this project does not have).",
+  "site_id": "MLA",
+  "paging": {"total": 2, "offset": 0, "limit": 50},
+  "results": [
+    {
+      "id": "MLA1234567890",
+      "title": "Departamento 3 ambientes en Recoleta",
+      "permalink": "https://departamento.mercadolibre.com.ar/MLA-1234567890-depto-recoleta-_JM",
+      "price": 900000,
+      "currency_id": "ARS",
+      "location": {
+        "city": {"id": "TUxBQ0NBUGZlZG1sYQ", "name": "Capital Federal"},
+        "neighborhood": {"id": "TUxBQlJFQzQ5NTVa", "name": "Recoleta"}
+      },
+      "seller_address": {"address_line": "Junin 1200"},
+      "attributes": [
+        {"id": "PROPERTY_TYPE", "value_name": "Departamento"},
+        {"id": "OPERATION", "value_name": "Alquiler"},
+        {"id": "TOTAL_AREA", "value_name": "72 m²", "value_struct": {"number": 72, "unit": "m²"}},
+        {"id": "COVERED_AREA", "value_name": "65 m²", "value_struct": {"number": 65, "unit": "m²"}},
+        {"id": "ROOMS", "value_name": "3"},
+        {"id": "MAINTENANCE_FEE", "value_name": "150000"}
+      ]
+    },
+    {
+      "id": "MLA9876543210",
+      "title": "PH en alquiler en Barrio Norte",
+      "permalink": "https://ph.mercadolibre.com.ar/MLA-9876543210-ph-barrio-norte-_JM",
+      "price": 1200,
+      "currency_id": "USD",
+      "location": {
+        "city": {"id": "TUxBQ0NBUGZlZG1sYQ", "name": "Capital Federal"},
+        "neighborhood": {"id": "TUxBQkJBUjM5ODJa", "name": "Barrio Norte"}
+      },
+      "seller_address": {"address_line": "Paraguay 2300"},
+      "attributes": [
+        {"id": "PROPERTY_TYPE", "value_name": "PH"},
+        {"id": "OPERATION", "value_name": "Alquiler"},
+        {"id": "COVERED_AREA", "value_name": "55 m²", "value_struct": {"number": 55, "unit": "m²"}},
+        {"id": "ROOMS", "value_name": "2"}
+      ]
+    }
+  ]
+}
