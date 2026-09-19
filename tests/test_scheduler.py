@@ -11,11 +11,15 @@ from monitor.services.notification.notifier import Notifier
 
 class FakeNotifier(Notifier):
     def __init__(self):
-        self.messages = []
+        self.sent = []
 
-    def send(self, text):
-        self.messages.append(text)
+    def send(self, message):
+        self.sent.append(message)
         return True
+
+    @property
+    def messages(self):
+        return [message.telegram_html for message in self.sent]
 
 
 class FakeScraper(BaseScraper):

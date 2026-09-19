@@ -36,10 +36,17 @@ def main(argv: Optional[list] = None) -> int:
 
     setup_logging(config.log_level, config.log_format)
 
-    if not config.telegram.configured:
+    channels = []
+    if config.telegram.enabled and config.telegram.configured:
+        channels.append("telegram")
+    if config.email.enabled and config.email.configured:
+        channels.append("email -> {0}".format(", ".join(config.email.recipients)))
+    if channels:
+        logger.info("notification channels: %s", "; ".join(channels))
+    else:
         logger.warning(
-            "TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID are not set: "
-            "notifications will be written to the log instead of Telegram"
+            "no notification channel configured (TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID or "
+            "SMTP_HOST/EMAIL_TO): notifications will be written to the log instead"
         )
 
     database = Database(config.database_path)

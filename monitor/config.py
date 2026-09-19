@@ -129,6 +129,26 @@ class TelegramConfig:
 
 
 @dataclass
+class EmailConfig:
+    host: str = "smtp.gmail.com"
+    port: int = 587
+    username: Optional[str] = None
+    password: Optional[str] = None
+    from_address: Optional[str] = None
+    from_name: str = "CABA Rental Monitor"
+    recipients: List[str] = field(default_factory=list)
+    use_starttls: bool = True
+    use_ssl: bool = False
+    timeout: float = 20.0
+    enabled: bool = True
+    subject_prefix: str = "[Alquiler] "
+
+    @property
+    def configured(self) -> bool:
+        return bool(self.host and self.from_address and self.recipients)
+
+
+@dataclass
 class SourceConfig:
     name: str
     enabled: bool = True
@@ -145,6 +165,7 @@ class Config:
     criteria: SearchCriteria
     telegram: TelegramConfig
     sources: Dict[str, SourceConfig]
+    email: EmailConfig = field(default_factory=EmailConfig)
     database_path: str = "data/listings.sqlite3"
     check_interval_seconds: int = 300
     http_timeout_seconds: float = 20.0
@@ -217,6 +238,25 @@ def load_config() -> Config:
         max_notifications_per_cycle=_int("MAX_NOTIFICATIONS_PER_CYCLE", 20),
     )
 
+    smtp_user = _raw("SMTP_USER")
+    email_port = _int("SMTP_PORT", 587)
+    email = EmailConfig(
+        host=_str("SMTP_HOST", "smtp.gmail.com"),
+        port=email_port,
+        username=smtp_user,
+        password=_raw("SMTP_PASSWORD"),
+        # Gmail rejects a From that is not the authenticated account, so the
+        # SMTP user is the natural default sender.
+        from_address=_raw("EMAIL_FROM") or smtp_user,
+        from_name=_str("EMAIL_FROM_NAME", "CABA Rental Monitor"),
+        recipients=_list("EMAIL_TO", []),
+        use_ssl=_bool("SMTP_SSL", email_port == 465),
+        use_starttls=_bool("SMTP_STARTTLS", True),
+        timeout=_float("SMTP_TIMEOUT", 20.0),
+        enabled=_bool("EMAIL_ENABLED", True),
+        subject_prefix=_str("EMAIL_SUBJECT_PREFIX", "[Alquiler] "),
+    )
+
     interval_minutes = _float("CHECK_INTERVAL", 5.0)
     check_interval_seconds = _int("CHECK_INTERVAL_SECONDS", int(interval_minutes * 60))
 
@@ -251,6 +291,7 @@ def load_config() -> Config:
     return Config(
         criteria=criteria,
         telegram=telegram,
+        email=email,
         sources=sources,
         database_path=_str("DATABASE_PATH", "data/listings.sqlite3"),
         check_interval_seconds=check_interval_seconds,

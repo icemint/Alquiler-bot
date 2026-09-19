@@ -18,12 +18,16 @@ DETECTED_AT = datetime(2026, 9, 18, 22, 5, tzinfo=timezone.utc)
 
 class FakeNotifier(Notifier):
     def __init__(self, succeed=True):
-        self.messages = []
+        self.sent = []
         self.succeed = succeed
 
-    def send(self, text):
-        self.messages.append(text)
+    def send(self, message):
+        self.sent.append(message)
         return self.succeed
+
+    @property
+    def messages(self):
+        return [message.telegram_html for message in self.sent]
 
 
 # ---------------------------------------------------------------- formatting
@@ -169,8 +173,8 @@ def test_a_failed_chunk_leaves_the_rest_pending(database):
         def __init__(self):
             self.messages = []
 
-        def send(self, text):
-            self.messages.append(text)
+        def send(self, message):
+            self.messages.append(message)
             return len(self.messages) == 1
 
     Deduplicator(database).process(

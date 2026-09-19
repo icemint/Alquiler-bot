@@ -9,19 +9,23 @@ from __future__ import annotations
 
 import abc
 import logging
+import smtplib
 import time
+from email.message import EmailMessage
+from email.utils import formataddr
 from typing import List, Optional
 
 import requests
 
-from monitor.config import TelegramConfig
+from monitor.config import EmailConfig, TelegramConfig
 from monitor.database import Database, StoredListing
 from monitor.logging_setup import log_context
 from monitor.services.notification.formatter import (
+    build_group_message,
+    build_listing_message,
     chunk_for_group,
-    format_group,
-    format_listing,
 )
+from monitor.services.notification.message import NotificationMessage
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +36,10 @@ MAX_MESSAGE_LENGTH = 4000
 class Notifier(abc.ABC):
     """Transport-agnostic notification sink."""
 
+    name = "notifier"
+
     @abc.abstractmethod
-    def send(self, text: str) -> bool:
+    def send(self, message: NotificationMessage) -> bool:
         """Deliver one message. Returns True when it was accepted."""
 
     @property
@@ -42,14 +48,101 @@ class Notifier(abc.ABC):
 
 
 class LoggingNotifier(Notifier):
-    """Used when Telegram is not configured: nothing is lost, it is logged."""
+    """Used when no channel is configured: nothing is lost, it is logged."""
 
-    def send(self, text: str) -> bool:
-        logger.info("notification (no Telegram configured):\n%s", text)
+    name = "log"
+
+    def send(self, message: NotificationMessage) -> bool:
+        logger.info("notification (no channel configured):\n%s", message.text)
+        return True
+
+
+class CompositeNotifier(Notifier):
+    """Fans one notification out to every configured channel.
+
+    Succeeds when at least one channel accepted the message: a listing that
+    reached your inbox must not be re-sent forever because a second channel is
+    misconfigured. Failures are logged per channel.
+    """
+
+    name = "composite"
+
+    def __init__(self, notifiers: List[Notifier]) -> None:
+        self.notifiers = notifiers
+
+    def send(self, message: NotificationMessage) -> bool:
+        delivered = False
+        for notifier in self.notifiers:
+            try:
+                if notifier.send(message):
+                    delivered = True
+                else:
+                    log_context(logger, logging.WARNING, "channel failed", channel=notifier.name)
+            except Exception as exc:  # noqa: BLE001 - one channel must not break the others
+                log_context(
+                    logger, logging.ERROR, "channel raised", channel=notifier.name, error=str(exc)
+                )
+        return delivered
+
+
+class EmailNotifier(Notifier):
+    """SMTP delivery, sending a plain-text part alongside the HTML one."""
+
+    name = "email"
+
+    def __init__(self, config: EmailConfig) -> None:
+        self.config = config
+
+    def _build(self, message: NotificationMessage) -> EmailMessage:
+        mail = EmailMessage()
+        mail["Subject"] = f"{self.config.subject_prefix}{message.subject}"
+        mail["From"] = formataddr((self.config.from_name, self.config.from_address))
+        mail["To"] = ", ".join(self.config.recipients)
+        mail.set_content(message.text)
+        mail.add_alternative(message.email_html, subtype="html")
+        return mail
+
+    def send(self, message: NotificationMessage) -> bool:
+        mail = self._build(message)
+        try:
+            if self.config.use_ssl:
+                server = smtplib.SMTP_SSL(
+                    self.config.host, self.config.port, timeout=self.config.timeout
+                )
+            else:
+                server = smtplib.SMTP(
+                    self.config.host, self.config.port, timeout=self.config.timeout
+                )
+            with server:
+                server.ehlo()
+                if self.config.use_starttls and not self.config.use_ssl:
+                    server.starttls()
+                    server.ehlo()
+                if self.config.username and self.config.password:
+                    server.login(self.config.username, self.config.password)
+                server.send_message(mail)
+        except (smtplib.SMTPException, OSError) as exc:
+            log_context(
+                logger,
+                logging.ERROR,
+                "email delivery failed",
+                host=self.config.host,
+                error=str(exc),
+            )
+            return False
+        log_context(
+            logger,
+            logging.INFO,
+            "email sent",
+            to=",".join(self.config.recipients),
+            subject=message.subject,
+        )
         return True
 
 
 class TelegramNotifier(Notifier):
+    name = "telegram"
+
     def __init__(
         self,
         bot_token: str,
@@ -98,7 +191,8 @@ class TelegramNotifier(Notifier):
             return None
         return data
 
-    def send(self, text: str) -> bool:
+    def send(self, message: NotificationMessage) -> bool:
+        text = message.telegram_html
         if len(text) > MAX_MESSAGE_LENGTH:
             text = text[: MAX_MESSAGE_LENGTH - 20] + "\n… (truncated)"
         result = self._call(
@@ -136,7 +230,7 @@ class NotificationService:
         if len(pending) > self.config.group_threshold:
             sent_count = 0
             for chunk in chunk_for_group(pending, MAX_MESSAGE_LENGTH):
-                if not self.notifier.send(format_group(chunk)):
+                if not self.notifier.send(build_group_message(chunk)):
                     break
                 self.database.mark_notified([item.dedupe_key for item in chunk])
                 sent_count += len(chunk)
@@ -146,7 +240,7 @@ class NotificationService:
         sent: List[str] = []
         for item in pending:
             detected_at = item.first_seen_at
-            if self.notifier.send(format_listing(item.listing, detected_at)):
+            if self.notifier.send(build_listing_message(item.listing, detected_at)):
                 sent.append(item.dedupe_key)
                 time.sleep(0.5)  # stay well inside Telegram's rate limits
             else:
@@ -155,7 +249,15 @@ class NotificationService:
         return len(sent)
 
 
-def build_notifier(config: TelegramConfig) -> Notifier:
-    if config.enabled and config.configured:
-        return TelegramNotifier(config.bot_token or "", config.chat_id or "")
-    return LoggingNotifier()
+def build_notifier(telegram: TelegramConfig, email: Optional[EmailConfig] = None) -> Notifier:
+    """Every configured channel is used; with none configured, messages are logged."""
+    channels: List[Notifier] = []
+    if telegram.enabled and telegram.configured:
+        channels.append(TelegramNotifier(telegram.bot_token or "", telegram.chat_id or ""))
+    if email is not None and email.enabled and email.configured:
+        channels.append(EmailNotifier(email))
+    if not channels:
+        return LoggingNotifier()
+    if len(channels) == 1:
+        return channels[0]
+    return CompositeNotifier(channels)

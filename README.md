@@ -25,8 +25,8 @@ before. The SQLite database makes that memory survive restarts.
 - Filters on operation, property type, neighborhood, area, price and currency.
 - Remembers every listing it has seen, so nothing is announced twice — not after
   a restart, not after a redeploy.
-- Sends a Telegram message per new listing, or one grouped digest when a single
-  cycle turns up many.
+- Sends a Telegram message and/or an email per new listing, or one grouped
+  digest when a single cycle turns up many.
 - Answers `/start`, `/status` and `/stats` in the same chat.
 
 ### What it deliberately does *not* do
@@ -127,14 +127,47 @@ every five minutes, not dozens of requests a second.
 
 ---
 
-## 4. Creating a Telegram bot
+## 4. Notification channels
+
+Telegram and email are independent: configure either, or both. Every configured
+channel receives every notification, and a listing counts as delivered as soon
+as one channel accepts it — a misconfigured second channel never causes endless
+re-sending. With no channel configured the service still runs and writes the
+notifications to its log.
+
+### Email (SMTP)
+
+```bash
+EMAIL_TO=you@gmail.com
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=you@gmail.com
+SMTP_PASSWORD=<16-character app password>
+```
+
+**Gmail needs an App Password**, not your account password:
+
+1. Enable 2-step verification at
+   [myaccount.google.com/security](https://myaccount.google.com/security).
+2. Open [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords),
+   create one named e.g. `alquiler`, and copy the 16 characters.
+3. Put it in `SMTP_PASSWORD` (spaces are fine to remove).
+
+`EMAIL_FROM` defaults to `SMTP_USER` because Gmail refuses to send as anyone
+else. `EMAIL_TO` accepts several comma-separated addresses. Port `465` switches
+to implicit TLS automatically; any other port uses STARTTLS.
+
+Each message is sent as HTML with a plain-text alternative, so it stays readable
+in any client.
+
+## 5. Creating a Telegram bot
 
 1. Open Telegram and message [@BotFather](https://t.me/BotFather).
 2. Send `/newbot`, pick a display name, then a username ending in `bot`.
 3. BotFather replies with a token like `123456789:AAF...`. That is
    `TELEGRAM_BOT_TOKEN`. Keep it secret — anyone holding it controls the bot.
 
-## 5. Finding your chat ID
+### Finding your chat ID
 
 Send your new bot any message first (a bot cannot start a conversation), then:
 
@@ -158,8 +191,14 @@ secrets has a working default.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `TELEGRAM_BOT_TOKEN` | — | Bot token from BotFather. Without it, notifications go to the log. |
+| `TELEGRAM_BOT_TOKEN` | — | Bot token from BotFather. |
 | `TELEGRAM_CHAT_ID` | — | Chat that receives notifications and may issue commands. |
+| `EMAIL_TO` | — | Comma-separated recipients. Enables the email channel. |
+| `SMTP_HOST` / `SMTP_PORT` | `smtp.gmail.com` / `587` | SMTP server. Port `465` implies implicit TLS. |
+| `SMTP_USER` / `SMTP_PASSWORD` | — | SMTP login. For Gmail, an App Password. |
+| `EMAIL_FROM` / `EMAIL_FROM_NAME` | `SMTP_USER` / `CABA Rental Monitor` | Sender identity. |
+| `EMAIL_SUBJECT_PREFIX` | `[Alquiler] ` | Prefix on every subject, handy for inbox filters. |
+| `EMAIL_ENABLED` | `true` | Set to `false` to keep the settings but mute the channel. |
 | `MAX_RENT` | `1000000` | Maximum **rent**. Expensas are never added to it. |
 | `MIN_AREA` | `50` | Minimum area in m². |
 | `CURRENCY` | `ARS` | Listings in any other currency are rejected. |
@@ -272,10 +311,13 @@ explanation, rather than silently matching nothing.
 
 ## 9. Troubleshooting
 
-**Nothing arrives at all.** Check `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID`: when
-they are missing the service logs the message instead of sending it, and says so
-at startup. Send `/status` to the bot — silence means the token or chat id is
-wrong. Remember that a fresh database stays quiet on its first cycle by design.
+**Nothing arrives at all.** The first log line after startup lists the active
+notification channels; if it warns that none is configured, the credentials are
+missing and messages are only being logged. For Telegram, send `/status` to the
+bot — silence means a wrong token or chat id. For email, a wrong Gmail password
+shows up as `email delivery failed ... 535`, which means you used the account
+password instead of an App Password. Remember that a fresh database stays quiet
+on its first cycle by design.
 
 **A source says `blocked`.** ArgenProp's WAF returns `202` with an empty body
 when polled too hard; the source backs itself off automatically. If it persists,
