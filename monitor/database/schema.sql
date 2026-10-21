@@ -33,7 +33,7 @@ CREATE INDEX IF NOT EXISTS idx_listings_source ON listings (source);
 CREATE INDEX IF NOT EXISTS idx_listings_pending ON listings (matched, notified_at);
 CREATE INDEX IF NOT EXISTS idx_listings_first_seen ON listings (first_seen_at);
 
--- One row per monitoring cycle, for /status and /stats.
+-- One row per monitoring cycle, for /status.
 CREATE TABLE IF NOT EXISTS cycles (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
     started_at     TEXT NOT NULL,

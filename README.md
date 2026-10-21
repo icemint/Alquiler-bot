@@ -28,7 +28,7 @@ before. The SQLite database makes that memory survive restarts.
 - Sends a Telegram message and/or an email per new listing, or one grouped
   digest when a single cycle turns up many.
 - Lets anyone subscribe: `/start` in the bot subscribes a chat, `/stop`
-  unsubscribes; `/status` and `/stats` show the monitor's health.
+  unsubscribes; `/status` shows when the sites were last checked.
 - Gives every subscriber their own search: `/settings` changes neighborhoods,
   property types, maximum rent and minimum area with buttons.
 
@@ -61,7 +61,7 @@ monitor/
 │   └── notification/    message formatting + Telegram delivery
 ├── database/            SQLite schema and repository
 ├── scheduler/           the monitoring cycle and the loop
-└── telegram/            /start, /settings, /stop, /status, /stats command bot
+└── telegram/            /start, /settings, /stop, /status command bot
 ```
 
 The dependency direction is one-way: scrapers know nothing about SQLite or
@@ -207,8 +207,8 @@ Look for `"chat": {"id": 123456789, ...}` — that number is `TELEGRAM_CHAT_ID`.
 For a group, add the bot to the group, post a message there, and use the group's
 negative id (e.g. `-1001234567890`).
 
-The bot answers everyone. `/status` and `/stats` show only aggregate counts,
-never who is subscribed. Subscribers are stored in the `subscribers` table of
+The bot answers everyone. `/status` shows only the last check and the chat's
+own filters, never who is subscribed. Subscribers are stored in the `subscribers` table of
 the SQLite database.
 
 ---

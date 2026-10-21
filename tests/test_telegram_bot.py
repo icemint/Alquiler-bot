@@ -1,7 +1,6 @@
 """Telegram command replies."""
 
 import pytest
-from conftest import make_listing
 
 from monitor.config import Config, SearchCriteria, SourceConfig, TelegramConfig
 from monitor.telegram import TelegramCommandBot
@@ -29,7 +28,7 @@ def test_start_describes_the_current_search(bot):
     assert "5 minutes" in message
 
 
-def test_status_reports_last_check_sources_and_filters(bot, database):
+def test_status_reports_last_check_and_filters_only(bot, database):
     database.update_source_state("mercadolibre", "ok", None, found=10, new_listings=1)
     cycle_id = database.start_cycle()
     database.finish_cycle(cycle_id, 2, 1, 10, 2, 1, 1)
@@ -37,25 +36,13 @@ def test_status_reports_last_check_sources_and_filters(bot, database):
     message = bot.handle_command("/status")
     assert "Last successful check:" in message
     assert "never" not in message
-    assert "Sources working: 1/2" in message
-    assert "Listings stored: 0" in message
+    assert "Sources working" not in message
+    assert "Listings stored" not in message
     assert "expensas excluded" in message
 
 
 def test_status_before_the_first_cycle(bot):
     assert "never" in bot.handle_command("/status")
-
-
-def test_stats_counts_listings_and_source_health(bot, database):
-    database.upsert_listing(make_listing(external_id="1"), matched=True)
-    database.upsert_listing(make_listing(external_id="2", source="argenprop"), matched=False)
-    database.update_source_state("mercadolibre", "ok", None, found=2, new_listings=1)
-    database.update_source_state("argenprop", "blocked", "WAF throttling", found=0, new_listings=0)
-
-    message = bot.handle_command("/stats")
-    assert "Listings monitored: 2" in message
-    assert "MercadoLibre: OK" in message
-    assert "ArgenProp: blocked" in message
 
 
 def test_unknown_command_is_answered_politely(bot):
@@ -100,15 +87,6 @@ def test_owner_seeding_respects_a_previous_stop(database):
     database.remove_subscriber("42")
     assert database.add_subscriber("42", reactivate=False) is False
     assert database.active_subscribers() == []
-
-
-def test_stats_counts_subscribers(bot):
-    bot.handle_command("/start", chat_id="1")
-    bot.handle_command("/start", chat_id="2")
-    assert "Subscribers: 2" in bot.handle_command("/stats")
-
-
-# ---------------------------------------------------------------- settings
 
 
 def test_settings_shows_the_chat_search_with_buttons(bot):
@@ -179,3 +157,7 @@ def test_leaving_the_prompt_cancels_typed_input(bot):
 def test_start_describes_the_chat_own_search(bot):
     bot.handle_callback("7", "r:750000")
     assert "750.000 ARS" in bot.handle_command("/start", chat_id="7")
+
+
+def test_stats_is_not_a_command_any_more(bot):
+    assert "Unknown command" in bot.handle_command("/stats")

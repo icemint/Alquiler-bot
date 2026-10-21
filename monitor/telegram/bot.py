@@ -1,10 +1,10 @@
-"""Telegram command handling (/start, /settings, /stop, /status, /stats).
+"""Telegram command handling (/start, /settings, /stop, /status).
 
 Runs in its own daemon thread with long polling. Anyone can talk to the bot:
 /start subscribes the chat to new-listing notifications and /stop ends that.
 /settings edits the chat's own search with inline buttons; prices and areas
-can also be typed. /status and /stats only expose aggregate counts, never who
-is subscribed.
+can also be typed. /status shows when the sites were last checked and the
+chat's own filters, never who is subscribed.
 """
 
 from __future__ import annotations
@@ -13,7 +13,6 @@ import logging
 import re
 import threading
 from dataclasses import dataclass
-from datetime import timedelta
 from html import escape
 from typing import Any, Dict, List, Optional
 
@@ -26,7 +25,7 @@ from monitor.models.listing import PropertyType
 from monitor.neighborhoods import NeighborhoodResolver
 from monitor.services.notification.formatter import source_label
 from monitor.services.subscriptions import criteria_for, save_criteria
-from monitor.timeutil import format_local, from_iso, utcnow
+from monitor.timeutil import format_local, from_iso
 
 logger = logging.getLogger("monitor.telegram")
 
@@ -46,7 +45,6 @@ COMMANDS = [
     ("start", "Subscribe and see your search"),
     ("settings", "Change your search"),
     ("status", "Last check and your filters"),
-    ("stats", "Numbers for today"),
     ("stop", "Unsubscribe"),
 ]
 
@@ -163,11 +161,9 @@ class TelegramCommandBot(threading.Thread):
             return "You are not subscribed. Send /start to subscribe."
         if command == "/status":
             return self.status_message(chat_id)
-        if command == "/stats":
-            return self.stats_message()
         if command == "/help":
             return self.start_message(chat_id)
-        return "Unknown command. Try /start, /settings, /stop, /status or /stats."
+        return "Unknown command. Try /start, /settings, /status or /stop."
 
     def reply_to_command(
         self, command: str, chat_id: str = "", username: Optional[str] = None
@@ -200,24 +196,20 @@ class TelegramCommandBot(threading.Thread):
                 f"Min area: {criteria.min_area_m2:g} m²",
                 f"Checked every {self.config.check_interval_seconds / 60:g} minutes",
                 "",
-                "Commands: /settings · /status · /stats · /stop",
+                "Commands: /settings · /status · /stop",
             ]
         )
 
     def status_message(self, chat_id: str = "") -> str:
         last_cycle = self.database.last_successful_cycle()
-        states = self.database.source_states()
         criteria = self._criteria(chat_id)
 
-        working = [name for name, state in states.items() if state.get("last_status") == "ok"]
         lines = [
             "📡 <b>Status</b>",
             "",
             "Last successful check: {0}".format(
                 format_local(from_iso(last_cycle["finished_at"])) if last_cycle else "never"
             ),
-            f"Listings stored: {self.database.count_listings()}",
-            f"Sources working: {len(working)}/{len(self.config.enabled_sources())}",
             "",
             "<b>Filters</b>",
             "Operation: Alquiler",
@@ -228,34 +220,6 @@ class TelegramCommandBot(threading.Thread):
             ),
             f"Min area: {criteria.min_area_m2:g} m²",
         ]
-        return "\n".join(lines)
-
-    def stats_message(self) -> str:
-        since = utcnow() - timedelta(days=1)
-        states = self.database.source_states()
-        per_source = self.database.counts_by_source()
-
-        lines = [
-            "📊 <b>Stats</b>",
-            "",
-            f"Listings monitored: {self.database.count_listings():,}".replace(",", "."),
-            f"Matching stored: {self.database.count_listings(matched_only=True)}",
-            f"New today: {self.database.count_new_since(since, matched_only=True)}",
-            f"Notifications today: {self.database.count_notified_since(since)}",
-            f"Cycles today: {self.database.cycles_since(since)}",
-            f"Subscribers: {self.database.count_subscribers()}",
-            "",
-        ]
-        for name in self.config.enabled_sources():
-            state = states.get(name, {})
-            status = state.get("last_status")
-            if status == "ok":
-                marker = "OK"
-            elif status is None:
-                marker = "not checked yet"
-            else:
-                marker = "{0} ({1})".format(status, (state.get("last_error") or "")[:80])
-            lines.append(f"{source_label(name)}: {marker} · {per_source.get(name, 0)} stored")
         return "\n".join(lines)
 
     # ------------------------------------------------------------------ settings
