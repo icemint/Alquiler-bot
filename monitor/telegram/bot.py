@@ -258,6 +258,11 @@ class TelegramCommandBot(threading.Thread):
             f"Min area: {criteria.min_area_m2:g} m²",
             f"Bedrooms: {describe_bedrooms(criteria)}",
             f"Furnished: {FURNISHED_LABELS[criteria.furnished].lower()}",
+            "USD listings: {0}".format(
+                f"shown, at the {self.config.usd_rate_source} rate"
+                if criteria.include_usd
+                else "hidden"
+            ),
             "",
             "Tap what you want to change.",
         ]
@@ -267,6 +272,7 @@ class TelegramCommandBot(threading.Thread):
             [_button("📍 Location", "s:loc"), _button("🏠 Types", "s:types")],
             [_button("💰 Max rent", "s:rent"), _button("📐 Min area", "s:area")],
             [_button("🛏 Bedrooms", "s:beds"), _button("🛋 Furnished", "s:furn")],
+            [_button("💵 USD listings: " + ("on" if criteria.include_usd else "off"), "u:toggle")],
             [_button("✅ Done", "s:done")],
         ]
         return Reply("\n".join(lines), keyboard)
@@ -499,6 +505,13 @@ class TelegramCommandBot(threading.Thread):
                 beds.append(int(value))
             self._update(chat_id, bedrooms=beds)
             return self._bedrooms_reply(chat_id)
+
+        if kind == "u" and value == "toggle":
+            include = not self._criteria(chat_id).include_usd
+            self._update(chat_id, include_usd=include)
+            return self.settings_reply(
+                chat_id, note="✅ USD listings " + ("shown" if include else "hidden")
+            )
 
         if kind == "f" and value in FURNISHED_LABELS:
             self._update(chat_id, furnished=value)

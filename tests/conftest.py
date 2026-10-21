@@ -13,6 +13,12 @@ def load_fixture(name):
         return handle.read()
 
 
+@pytest.fixture(autouse=True)
+def no_exchange_rate_requests(monkeypatch):
+    """Tests never reach dolarapi.com: without a fixed rate, there is none."""
+    monkeypatch.setattr("monitor.services.exchange.UsdRate._fetch", lambda self: None)
+
+
 @pytest.fixture
 def fixture_loader():
     return load_fixture

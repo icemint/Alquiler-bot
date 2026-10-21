@@ -60,8 +60,8 @@ class CabaPropScraper(BaseScraper):
             "operationType": OPERATION_RENT,
             "propertyTypes": [TYPE_CODES[t] for t in criteria.property_types if t in TYPE_CODES],
             "barrios": self.barrio_ids(),
-            # The site ignores the currency when comparing; the filter stage
-            # still rejects anything not priced in the configured currency.
+            # The site ignores the currency when comparing, so every dollar
+            # listing comes back; the filter stage converts them.
             "price": {"currency": criteria.currency, "min": 0, "max": int(criteria.max_rent)},
         }
         if criteria.min_area_m2:

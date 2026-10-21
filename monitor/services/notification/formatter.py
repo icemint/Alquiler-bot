@@ -37,6 +37,15 @@ def format_money(amount: Optional[float], currency: Optional[str] = "ARS") -> st
     return f"{symbol} {formatted}"
 
 
+def format_price(listing: Listing, usd_rate: Optional[float] = None) -> str:
+    """The rent as listed; a dollar rent also in pesos at ``usd_rate``,
+    e.g. US$ 550 (≈ $ 849.750)."""
+    text = format_money(listing.price, listing.currency)
+    if listing.currency == "USD" and listing.price is not None and usd_rate:
+        text += f" (≈ {format_money(listing.price * usd_rate, 'ARS')})"
+    return text
+
+
 def format_area(area: Optional[float]) -> str:
     if area is None:
         return "-"
@@ -54,7 +63,9 @@ def _yes_no(value: bool) -> str:
     return "yes" if value else "no"
 
 
-def format_listing(listing: Listing, detected_at: Optional[datetime] = None) -> str:
+def format_listing(
+    listing: Listing, detected_at: Optional[datetime] = None, usd_rate: Optional[float] = None
+) -> str:
     """Single-listing notification, HTML formatted for Telegram."""
     lines = [
         "🏠 <b>New apartment</b>",
@@ -63,7 +74,7 @@ def format_listing(listing: Listing, detected_at: Optional[datetime] = None) -> 
         "",
         f"Type: {escape(listing.property_type.value)}",
         f"Neighborhood: {escape(place(listing))}",
-        f"Price: {format_money(listing.price, listing.currency)}",
+        f"Price: {format_price(listing, usd_rate)}",
         f"Area: {format_area(listing.area_m2)}",
     ]
     if listing.rooms:
@@ -93,7 +104,7 @@ def format_listing(listing: Listing, detected_at: Optional[datetime] = None) -> 
 
 
 def chunk_for_group(
-    items: Sequence[StoredListing], max_length: int = 4000
+    items: Sequence[StoredListing], max_length: int = 4000, usd_rate: Optional[float] = None
 ) -> List[List[StoredListing]]:
     """Split a digest into batches that each fit in one Telegram message.
 
@@ -104,7 +115,7 @@ def chunk_for_group(
     current: List[StoredListing] = []
     for item in items:
         candidate = current + [item]
-        if current and len(format_group(candidate)) > max_length:
+        if current and len(format_group(candidate, usd_rate=usd_rate)) > max_length:
             chunks.append(current)
             current = [item]
         else:
@@ -114,7 +125,11 @@ def chunk_for_group(
     return chunks
 
 
-def format_group(items: Sequence[StoredListing], detected_at: Optional[datetime] = None) -> str:
+def format_group(
+    items: Sequence[StoredListing],
+    detected_at: Optional[datetime] = None,
+    usd_rate: Optional[float] = None,
+) -> str:
     """Digest used when a single cycle turns up many new listings."""
     when = format_local(detected_at or utcnow())
     lines: List[str] = [
@@ -125,7 +140,7 @@ def format_group(items: Sequence[StoredListing], detected_at: Optional[datetime]
     for index, item in enumerate(items, start=1):
         listing = item.listing
         details = [
-            format_money(listing.price, listing.currency),
+            format_price(listing, usd_rate),
             format_area(listing.area_m2),
         ]
         if listing.rooms:
@@ -153,7 +168,9 @@ def format_group(items: Sequence[StoredListing], detected_at: Optional[datetime]
     return "\n".join(lines).strip()
 
 
-def _plain_listing(listing: Listing, detected_at: Optional[datetime] = None) -> str:
+def _plain_listing(
+    listing: Listing, detected_at: Optional[datetime] = None, usd_rate: Optional[float] = None
+) -> str:
     """Plain-text rendering, used for email and for the log fallback."""
     lines = [
         "New apartment",
@@ -162,7 +179,7 @@ def _plain_listing(listing: Listing, detected_at: Optional[datetime] = None) -> 
         "",
         f"Type: {listing.property_type.value}",
         f"Neighborhood: {place(listing)}",
-        f"Price: {format_money(listing.price, listing.currency)}",
+        f"Price: {format_price(listing, usd_rate)}",
         f"Area: {format_area(listing.area_m2)}",
     ]
     if listing.rooms:
@@ -189,11 +206,11 @@ def _email_row(label: str, value: str) -> str:
     )
 
 
-def _email_listing_card(listing: Listing) -> str:
+def _email_listing_card(listing: Listing, usd_rate: Optional[float] = None) -> str:
     rows = [
         _email_row("Type", escape(listing.property_type.value)),
         _email_row("Neighborhood", escape(place(listing))),
-        _email_row("Price", escape(format_money(listing.price, listing.currency))),
+        _email_row("Price", escape(format_price(listing, usd_rate))),
         _email_row("Area", escape(format_area(listing.area_m2))),
     ]
     if listing.rooms:
@@ -238,7 +255,7 @@ def _email_document(heading: str, detected_at: datetime, body: str) -> str:
 
 
 def build_listing_message(
-    listing: Listing, detected_at: Optional[datetime] = None
+    listing: Listing, detected_at: Optional[datetime] = None, usd_rate: Optional[float] = None
 ) -> NotificationMessage:
     when = detected_at or utcnow()
     price = format_money(listing.price, listing.currency)
@@ -249,22 +266,24 @@ def build_listing_message(
     )
     return NotificationMessage(
         subject=subject,
-        text=_plain_listing(listing, when),
-        telegram_html=format_listing(listing, when),
-        email_html=_email_document("New apartment", when, _email_listing_card(listing)),
+        text=_plain_listing(listing, when, usd_rate),
+        telegram_html=format_listing(listing, when, usd_rate),
+        email_html=_email_document("New apartment", when, _email_listing_card(listing, usd_rate)),
     )
 
 
 def build_group_message(
-    items: Sequence[StoredListing], detected_at: Optional[datetime] = None
+    items: Sequence[StoredListing],
+    detected_at: Optional[datetime] = None,
+    usd_rate: Optional[float] = None,
 ) -> NotificationMessage:
     when = detected_at or utcnow()
     heading = f"{len(items)} new apartments"
-    body = "".join(_email_listing_card(item.listing) for item in items)
-    text_blocks = [_plain_listing(item.listing, when) for item in items]
+    body = "".join(_email_listing_card(item.listing, usd_rate) for item in items)
+    text_blocks = [_plain_listing(item.listing, when, usd_rate) for item in items]
     return NotificationMessage(
         subject=heading,
         text=("\n\n" + "-" * 40 + "\n\n").join(text_blocks),
-        telegram_html=format_group(items, when),
+        telegram_html=format_group(items, when, usd_rate),
         email_html=_email_document(heading, when, body),
     )

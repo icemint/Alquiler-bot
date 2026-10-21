@@ -23,6 +23,7 @@ from monitor.models.result import ScrapeResult, SourceStatus
 from monitor.neighborhoods import NeighborhoodResolver
 from monitor.scrapers import BaseScraper, build_scrapers
 from monitor.services.deduplication import Deduplicator
+from monitor.services.exchange import UsdRate
 from monitor.services.filtering import FilterDecision, ListingFilter
 from monitor.services.notification import NotificationService
 from monitor.services.notification.notifier import Notifier, build_notifier
@@ -92,11 +93,12 @@ class MonitorService:
         self.database = database
         self.resolver = NeighborhoodResolver.from_file(config.neighborhood_map_file)
         self.scrapers = scrapers if scrapers is not None else build_scrapers(config, self.resolver)
-        self.filter = ListingFilter(config.criteria)
+        self.usd_rate = UsdRate(config.usd_rate_source, config.usd_ars_rate)
+        self.filter = ListingFilter(config.criteria, self.usd_rate.current)
         self.deduplicator = Deduplicator(database)
         self.notifier = notifier or build_notifier(config.telegram, config.email, database)
         self.notifications = NotificationService(
-            database, self.notifier, config.telegram, config.criteria
+            database, self.notifier, config.telegram, config.criteria, self.usd_rate.current
         )
         self._stop = threading.Event()
 
@@ -146,7 +148,7 @@ class MonitorService:
         scope = search_scope(self.database, self.config.criteria)
         for scraper in self.scrapers:
             scraper.criteria = scope
-        self.filter = ListingFilter(scope)
+        self.filter = ListingFilter(scope, self.usd_rate.current)
         return scope
 
     def run_cycle(self) -> CycleReport:
@@ -287,7 +289,9 @@ class MonitorService:
             if previous == current:
                 continue
             if previous:
-                old_filter = ListingFilter(scope.with_changes(json.loads(previous)))
+                old_filter = ListingFilter(
+                    scope.with_changes(json.loads(previous)), self.usd_rate.current
+                )
                 outside = [
                     item.dedupe_key
                     for item in self.database.pending_notifications(limit=10_000)
