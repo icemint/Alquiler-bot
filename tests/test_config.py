@@ -68,6 +68,12 @@ def test_secrets_are_read_from_the_environment(monkeypatch):
     assert config.telegram.configured is True
 
 
+def test_a_bot_token_alone_is_enough_for_telegram(monkeypatch):
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "123:abc")
+    monkeypatch.delenv("TELEGRAM_CHAT_ID", raising=False)
+    assert load_config().telegram.configured is True
+
+
 def test_missing_telegram_credentials_are_not_fatal():
     assert load_config().telegram.configured is False
 

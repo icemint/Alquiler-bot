@@ -1,8 +1,8 @@
-"""Telegram command handling (/start, /status, /stats).
+"""Telegram command handling (/start, /stop, /status, /stats).
 
-Runs in its own daemon thread with long polling. Only the configured chat is
-answered; messages from anyone else are ignored, so the bot token being known
-does not expose the monitor's state.
+Runs in its own daemon thread with long polling. Anyone can talk to the bot:
+/start subscribes the chat to new-listing notifications and /stop ends that.
+/status and /stats only expose aggregate counts, never who is subscribed.
 """
 
 from __future__ import annotations
@@ -74,17 +74,27 @@ class TelegramCommandBot(threading.Thread):
 
     # ------------------------------------------------------------------ commands
 
-    def handle_command(self, command: str) -> str:
+    def handle_command(
+        self, command: str, chat_id: str = "", username: Optional[str] = None
+    ) -> str:
         command = command.split("@")[0].strip().lower()
         if command == "/start":
-            return self.start_message()
+            if chat_id:
+                self.database.add_subscriber(chat_id, username)
+                log_context(logger, logging.INFO, "subscriber added", chat_id=chat_id)
+            return self.start_message() + "\n\n✅ You are subscribed. /stop to unsubscribe."
+        if command == "/stop":
+            if chat_id and self.database.remove_subscriber(chat_id):
+                log_context(logger, logging.INFO, "subscriber removed", chat_id=chat_id)
+                return "🔕 Unsubscribed. Send /start to subscribe again."
+            return "You are not subscribed. Send /start to subscribe."
         if command == "/status":
             return self.status_message()
         if command == "/stats":
             return self.stats_message()
         if command == "/help":
             return self.start_message()
-        return "Unknown command. Try /status or /stats."
+        return "Unknown command. Try /start, /stop, /status or /stats."
 
     def start_message(self) -> str:
         criteria = self.config.criteria
@@ -106,7 +116,7 @@ class TelegramCommandBot(threading.Thread):
                 f"Min area: {criteria.min_area_m2:g} m²",
                 f"Checked every {self.config.check_interval_seconds / 60:g} minutes",
                 "",
-                "Commands: /status · /stats",
+                "Commands: /status · /stats · /stop",
             ]
         )
 
@@ -149,6 +159,7 @@ class TelegramCommandBot(threading.Thread):
             f"New today: {self.database.count_new_since(since, matched_only=True)}",
             f"Notifications today: {self.database.count_notified_since(since)}",
             f"Cycles today: {self.database.cycles_since(since)}",
+            f"Subscribers: {self.database.count_subscribers()}",
             "",
         ]
         for name in self.config.enabled_sources():
@@ -181,7 +192,7 @@ class TelegramCommandBot(threading.Thread):
 
     def run(self) -> None:
         if not self.config.telegram.configured:
-            logger.info("telegram commands disabled: no bot token/chat id configured")
+            logger.info("telegram commands disabled: no bot token configured")
             return
         logger.info("telegram command bot started")
         while not self._stop.is_set():
@@ -196,16 +207,13 @@ class TelegramCommandBot(threading.Thread):
                 self.database.set_state(OFFSET_KEY, str(update.get("update_id", 0) + 1))
                 message = update.get("message") or {}
                 text = (message.get("text") or "").strip()
-                chat_id = str((message.get("chat") or {}).get("id", ""))
-                if not text.startswith("/"):
-                    continue
-                if chat_id != str(self.config.telegram.chat_id):
-                    log_context(
-                        logger, logging.INFO, "ignoring command from unknown chat", chat_id=chat_id
-                    )
+                chat = message.get("chat") or {}
+                chat_id = str(chat.get("id", ""))
+                if not text.startswith("/") or not chat_id:
                     continue
                 log_context(logger, logging.INFO, "telegram command", command=text.split()[0])
-                self._send(chat_id, self.handle_command(text.split()[0]))
+                reply = self.handle_command(text.split()[0], chat_id, chat.get("username"))
+                self._send(chat_id, reply)
 
             if not updates:
                 self._stop.wait(1)

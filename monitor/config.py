@@ -125,7 +125,9 @@ class TelegramConfig:
 
     @property
     def configured(self) -> bool:
-        return bool(self.bot_token and self.chat_id)
+        # Recipients are the chats that sent /start; chat_id only seeds the
+        # owner's chat as the first subscriber.
+        return bool(self.bot_token)
 
 
 @dataclass
