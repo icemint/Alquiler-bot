@@ -13,6 +13,12 @@ def load_fixture(name):
         return handle.read()
 
 
+@pytest.fixture(autouse=True)
+def no_exchange_rate_requests(monkeypatch):
+    """Tests never reach dolarapi.com: without a fixed rate, there is none."""
+    monkeypatch.setattr("monitor.services.exchange.UsdRate._fetch", lambda self: None)
+
+
 @pytest.fixture
 def fixture_loader():
     return load_fixture
@@ -39,6 +45,22 @@ def database(tmp_path):
     db = Database(str(tmp_path / "test.sqlite3"))
     yield db
     db.close()
+
+
+@pytest.fixture
+def bot(database):
+    from monitor.config import Config, SearchCriteria, SourceConfig, TelegramConfig
+    from monitor.telegram import TelegramCommandBot
+
+    config = Config(
+        criteria=SearchCriteria(),
+        telegram=TelegramConfig(bot_token="t", chat_id="42"),
+        sources={
+            "mercadolibre": SourceConfig(name="mercadolibre"),
+            "argenprop": SourceConfig(name="argenprop"),
+        },
+    )
+    return TelegramCommandBot(config, database)
 
 
 def make_listing(**overrides):

@@ -267,3 +267,84 @@ def test_no_subscribers_does_not_block_the_queue(database):
     session = FakeSession()
     assert telegram_notifier(database, session).send(single_message()) is True
     assert session.chats == []
+
+
+class NotJson(FakeResponse):
+    def json(self):
+        raise ValueError("not JSON")
+
+
+@pytest.fixture
+def no_sleep(monkeypatch):
+    slept = []
+    monkeypatch.setattr("monitor.services.notification.notifier.time.sleep", slept.append)
+    return slept
+
+
+def test_telegram_rate_limit_waits_as_told_and_keeps_the_listing_pending(database, no_sleep):
+    database.add_subscriber("1")
+    limited = FakeResponse(429, {"ok": False, "parameters": {"retry_after": 12}})
+    session = FakeSession({"1": limited})
+    assert telegram_notifier(database, session).send(single_message()) is False
+    assert no_sleep == [12]
+    assert database.active_subscribers() == ["1"]
+
+
+def test_telegram_rate_limit_without_details_waits_a_default(database, no_sleep):
+    database.add_subscriber("1")
+    session = FakeSession({"1": NotJson(429, None)})
+    assert telegram_notifier(database, session).send(single_message()) is False
+    assert no_sleep == [5]
+
+
+def test_telegram_network_and_garbage_answers_are_failures(database):
+    import requests
+
+    database.add_subscriber("1")
+
+    class Down:
+        def post(self, *args, **kwargs):
+            raise requests.ConnectionError("down")
+
+    assert telegram_notifier(database, Down()).send(single_message()) is False
+    garbage = FakeSession({"1": NotJson(502, None)})
+    assert telegram_notifier(database, garbage).send(single_message()) is False
+
+
+def test_an_oversized_message_is_truncated_for_telegram(database):
+    from dataclasses import replace
+
+    from monitor.services.notification.notifier import MAX_MESSAGE_LENGTH
+
+    database.add_subscriber("1")
+    sent = []
+
+    class Recording(FakeSession):
+        def post(self, url, json, timeout):
+            sent.append(json["text"])
+            return FakeResponse(200, {"ok": True})
+
+    message = replace(single_message(), telegram_html="x" * (MAX_MESSAGE_LENGTH + 500))
+    assert telegram_notifier(database, Recording()).send(message) is True
+    assert len(sent[0]) <= MAX_MESSAGE_LENGTH
+    assert sent[0].endswith("(truncated)")
+
+
+def test_without_a_channel_messages_go_to_the_log(caplog):
+    import logging
+
+    from monitor.services.notification.notifier import LoggingNotifier
+
+    with caplog.at_level(logging.INFO):
+        assert LoggingNotifier().send(single_message()) is True
+    assert "no channel configured" in caplog.text
+
+
+def test_every_format_shows_rooms_bedrooms_and_furnished():
+    from monitor.services.notification.formatter import build_listing_message
+
+    message = build_listing_message(make_listing(rooms=3, bedrooms=2, furnished=True), DETECTED_AT)
+    assert "Ambientes: 3" in message.text and "Bedrooms: 2" in message.text
+    assert "Furnished: yes" in message.text
+    assert "Furnished" in message.email_html and "Bedrooms" in message.email_html
+    assert format_area(None) == "-"

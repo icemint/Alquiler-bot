@@ -232,7 +232,10 @@ bot token has a working default. Quote values that contain spaces
 | `EMAIL_ENABLED` | `true` | Set to `false` to keep the settings but mute the channel. |
 | `MAX_RENT` | `1000000` | Default maximum **rent**. Expensas are never added to it. |
 | `MIN_AREA` | `50` | Default minimum area in m². |
-| `CURRENCY` | `ARS` | Listings in any other currency are rejected. |
+| `CURRENCY` | `ARS` | The budget's currency. Listings in USD are converted (below); any other currency is rejected. |
+| `INCLUDE_USD` | `true` | Default for showing listings priced in USD. Each subscriber can switch it in `/settings`. |
+| `USD_RATE_SOURCE` | `oficial` | Which [dolarapi.com](https://dolarapi.com) quote converts USD to ARS (`oficial`, `blue`, `bolsa`, ...); its selling price is used. |
+| `USD_ARS_RATE` | — | A fixed rate instead of the live one. |
 | `CITIES` | `CABA` | Default cities. A city with no barrios in `NEIGHBORHOODS` is searched whole. |
 | `NEIGHBORHOODS` | `CABA/Recoleta,CABA/Barrio Norte` | Default barrios as `City/Barrio` (a bare name is a CABA barrio). Must exist in the location map. |
 | `PROPERTY_TYPES` | `Departamento,Casa,PH` | Default types. Any subset of the three. |
@@ -300,10 +303,13 @@ start then treats every current listing as already-seen (because
 .venv/bin/python -m pytest -q
 .venv/bin/python -m ruff check .
 .venv/bin/python -m ruff format --check .
+# Coverage, with the lines no test runs:
+.venv/bin/python -m pytest -q --cov=monitor --cov-report=term-missing
 ```
 
 The parser tests run against HTML captured from the live sites
-(`tests/fixtures/`), so they never touch the network.
+(`tests/fixtures/`), so they never touch the network. Nothing else does
+either: scrapers, Telegram and the entry point are tested against fakes.
 
 ---
 
@@ -329,6 +335,15 @@ option, `4+`, means four or more.
 attribute when the ad has one; otherwise from what the title or description
 says ("amoblado", "amueblado", "con muebles"; "sin muebles", "no amoblado").
 Semi-amoblado counts as furnished.
+
+**Listings in dollars** are converted to pesos at the day's rate and held
+against the rent limit: with a limit of $ 1.000.000 and the oficial rate at
+1545, US$ 600 passes and US$ 700 does not. The message shows both amounts,
+"US$ 600 (≈ $ 927.000)". The rate is dolarapi.com's selling price, fetched at
+most once an hour and only when a dollar listing comes up; if it cannot be
+fetched, the last rate is kept, and with no rate at all dollar listings are
+rejected as before. Each subscriber can hide them with the 💵 button in
+`/settings`.
 
 Both filters only drop listings that state something else. When an ad does not
 say how many bedrooms it has or whether it is furnished, it is still notified

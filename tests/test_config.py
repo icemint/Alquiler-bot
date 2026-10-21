@@ -191,3 +191,44 @@ def test_description_keeps_list_commas_and_formats_the_amount(monkeypatch):
     text = load_config().criteria.describe()
     assert "Recoleta, Barrio Norte" in text
     assert "1.000.000 ARS" in text
+
+
+def test_a_missing_config_file_is_an_error(monkeypatch, tmp_path):
+    monkeypatch.setenv("CONFIG_FILE", str(tmp_path / "nope.json"))
+    with pytest.raises(ConfigError, match="does not exist"):
+        load_config()
+
+
+def test_a_config_file_must_hold_an_object(monkeypatch, tmp_path):
+    path = tmp_path / "config.json"
+    path.write_text("[1, 2]")
+    monkeypatch.setenv("CONFIG_FILE", str(path))
+    with pytest.raises(ConfigError, match="JSON object"):
+        load_config()
+
+
+def test_a_non_numeric_value_is_an_error(monkeypatch):
+    monkeypatch.setenv("MAX_RENT", "lots")
+    with pytest.raises(ConfigError, match="MAX_RENT must be a number"):
+        load_config()
+
+
+@pytest.mark.parametrize("value,expected", [("si", True), ("on", True), ("no", False)])
+def test_yes_no_settings_accept_common_spellings(monkeypatch, value, expected):
+    monkeypatch.setenv("NOTIFY_ON_FIRST_RUN", value)
+    assert load_config().notify_on_first_run is expected
+
+
+def test_property_types_cannot_be_empty(monkeypatch):
+    monkeypatch.setenv("PROPERTY_TYPES", " , ")
+    with pytest.raises(ConfigError, match="must not be empty"):
+        load_config()
+
+
+def test_a_chosen_barrio_brings_its_city_into_the_search():
+    from monitor.config import SearchCriteria
+
+    criteria = SearchCriteria(cities=["CABA"], neighborhoods=["AMBA/Tigre"])
+    assert criteria.cities == ["CABA", "AMBA"]
+    described = SearchCriteria(bedrooms=[1, 2], furnished="yes").describe()
+    assert "bedrooms 1,2" in described and "furnished=yes" in described

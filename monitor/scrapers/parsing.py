@@ -26,7 +26,7 @@ APPROXIMATE_PRICE_MARKERS = (
 _USD_MARKERS = ("u$s", "usd", "u$d", "dolar", "dólar", "us$")
 _ARS_MARKERS = ("ars", "$", "peso")
 
-_NUMBER_RE = re.compile(r"\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+(?:,\d+)?|\d+(?:\.\d+)?")
+_NUMBER_RE = re.compile(r"\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+(?:[.,]\d+)?")
 
 
 def normalize_spaces(value: Optional[str]) -> Optional[str]:

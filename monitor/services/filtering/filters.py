@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
+from typing import Callable, Optional
 
 from monitor.config import BEDROOMS_OR_MORE, SearchCriteria
 from monitor.models.listing import Listing, Operation
@@ -44,8 +44,29 @@ class FilterDecision:
 
 
 class ListingFilter:
-    def __init__(self, criteria: SearchCriteria) -> None:
+    def __init__(
+        self,
+        criteria: SearchCriteria,
+        usd_rate: Optional[Callable[[], Optional[float]]] = None,
+    ) -> None:
         self.criteria = criteria
+        # ARS per USD, asked only when a dollar listing comes up.
+        self.usd_rate = usd_rate
+
+    def _price_in_budget_currency(self, listing: Listing) -> Optional[float]:
+        """The rent in the budget's currency, or None if it cannot be had."""
+        if listing.currency == self.criteria.currency:
+            return listing.price
+        if (
+            listing.currency == "USD"
+            and self.criteria.currency == "ARS"
+            and self.criteria.include_usd
+            and self.usd_rate
+        ):
+            rate = self.usd_rate()
+            if rate and listing.price is not None:
+                return listing.price * rate
+        return None
 
     def evaluate(self, listing: Listing) -> FilterDecision:
         criteria = self.criteria
@@ -77,12 +98,13 @@ class ListingFilter:
             # "desde" prices, promotional prices and ads covering several
             # units: the number shown is not this unit's rent.
             return FilterDecision(False, RejectReason.PRICE_UNRELIABLE)
-        if not listing.currency or listing.currency != criteria.currency:
+        price = self._price_in_budget_currency(listing)
+        if price is None:
             return FilterDecision(False, RejectReason.CURRENCY)
-        if listing.price <= 0:
+        if price <= 0:
             return FilterDecision(False, RejectReason.PRICE_UNRELIABLE)
         # Expensas are deliberately excluded from the price comparison.
-        if listing.price > criteria.max_rent:
+        if price > criteria.max_rent:
             return FilterDecision(False, RejectReason.PRICE_ABOVE_MAX)
 
         if listing.area_m2 is None:

@@ -35,3 +35,41 @@ def test_listings_stored_before_cities_existed_are_in_caba(tmp_path):
     database.close()
     # A second start does not run the backfill again.
     Database(path).close()
+
+
+def test_a_corrupt_extra_field_is_read_as_empty(database):
+    from conftest import make_listing
+
+    from monitor.services.deduplication import Deduplicator
+    from monitor.services.filtering import FilterDecision
+
+    Deduplicator(database).process([(make_listing(), FilterDecision(True))])
+    database._conn.execute("UPDATE listings SET extra = '{broken'")
+    [stored] = database.pending_notifications()
+    assert stored.listing.extra == {}
+
+
+def test_counts_and_lookups_handle_empty_and_filtered_input(database):
+    from conftest import make_listing
+
+    from monitor.services.deduplication import Deduplicator
+    from monitor.services.filtering import FilterDecision
+
+    Deduplicator(database).process(
+        [
+            (make_listing(external_id="1"), FilterDecision(True)),
+            (make_listing(external_id="2", source="argenprop"), FilterDecision(False)),
+        ]
+    )
+    assert database.count_listings() == 2
+    assert database.count_listings(source="argenprop") == 1
+    assert database.count_listings(matched_only=True) == 1
+    database.record_notification_attempt([])
+    assert database.delivered_keys("7", []) == []
+
+
+def test_a_corrupt_stored_search_is_ignored(database):
+    database.add_subscriber("7")
+    database.set_criteria("7", {"max_rent": 1})
+    database._conn.execute("UPDATE subscriber_criteria SET criteria = 'nope'")
+    assert database.get_criteria("7") is None
