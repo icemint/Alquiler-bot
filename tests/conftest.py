@@ -41,6 +41,22 @@ def database(tmp_path):
     db.close()
 
 
+@pytest.fixture
+def bot(database):
+    from monitor.config import Config, SearchCriteria, SourceConfig, TelegramConfig
+    from monitor.telegram import TelegramCommandBot
+
+    config = Config(
+        criteria=SearchCriteria(),
+        telegram=TelegramConfig(bot_token="t", chat_id="42"),
+        sources={
+            "mercadolibre": SourceConfig(name="mercadolibre"),
+            "argenprop": SourceConfig(name="argenprop"),
+        },
+    )
+    return TelegramCommandBot(config, database)
+
+
 def make_listing(**overrides):
     """A listing that passes every filter unless a field is overridden."""
     from monitor.models.listing import Listing, Operation, PropertyType
