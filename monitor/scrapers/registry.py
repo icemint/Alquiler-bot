@@ -11,12 +11,14 @@ from monitor.scrapers.base import BaseScraper, HttpClient
 
 def build_scrapers(config: Config, resolver: NeighborhoodResolver) -> List[BaseScraper]:
     from monitor.scrapers.argenprop import ArgenPropScraper
+    from monitor.scrapers.cabaprop import CabaPropScraper
     from monitor.scrapers.mercadolibre import MercadoLibreScraper
     from monitor.scrapers.zonaprop import ZonaPropScraper
 
     classes: Dict[str, type] = {
         "mercadolibre": MercadoLibreScraper,
         "argenprop": ArgenPropScraper,
+        "cabaprop": CabaPropScraper,
         "zonaprop": ZonaPropScraper,
     }
 

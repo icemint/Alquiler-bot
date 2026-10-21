@@ -19,7 +19,7 @@ before. The SQLite database makes that memory survive restarts.
 
 ## 1. What it does
 
-- Polls **MercadoLibre Inmuebles** and **ArgenProp** on a fixed interval
+- Polls **MercadoLibre Inmuebles**, **ArgenProp** and **CabaProp** on a fixed interval
   (ZonaProp is included but disabled — see [Sources](#3-sources-and-how-they-are-accessed)).
 - Normalizes every advertisement into one `Listing` model, whatever the source.
 - Filters on operation, property type, neighborhood, area, price and currency.
@@ -83,6 +83,7 @@ things.
 |---|---|---|---|
 | MercadoLibre | Server-rendered search pages, filtered by URL | ~6 (2 neighborhoods × 3 types) | Working, verified live |
 | ArgenProp | Server-rendered search pages, newest-first | 3, on its own 10-minute interval | Working, verified live |
+| CabaProp | The site's own JSON search endpoint, newest-first | 1 | Working, verified live |
 | ZonaProp | — | 0 | Disabled: Cloudflare challenge |
 
 **MercadoLibre.** Its URL grammar carries every filter we need, which keeps the
@@ -106,6 +107,17 @@ forbids three-way `-o-` combinations, two are fine). Its AWS WAF answers `202`
 with an empty body when it dislikes your rate, and that block outlives short
 backoffs — hence the 20-second delay between requests and the separate
 `ARGENPROP_MIN_INTERVAL_SECONDS` interval.
+
+**CabaProp.** The portal of CABA's real-estate brokers' board (CUCICBA), so it
+only lists licensed agencies in the city. Its search page is a client-side app
+that POSTs the filters to `/api/v1/properties/find-properties` and renders the
+JSON; the scraper sends that same request — rent, property types, barrio ids,
+price ceiling and minimum total area, newest first — so one request per cycle
+covers everything new. Every field is structured: price and expensas with their
+currency (`1` = USD, `2` = ARS), total and covered area, barrio ids. There is
+no anti-bot challenge and robots.txt only disallows account pages. The endpoint
+is undocumented, so a change in its response shape is reported as an error,
+never as "0 listings found".
 
 **ZonaProp.** Every URL, including the sitemaps listed in its own robots.txt,
 returns `403` with `cf-mitigated: challenge` and Cloudflare's "Just a moment…"
@@ -220,8 +232,8 @@ bot token has a working default. Quote values that contain spaces
 | `NEIGHBORHOODS` | `Recoleta,Barrio Norte` | Must exist in the neighborhood map. |
 | `PROPERTY_TYPES` | `Departamento,Casa,PH` | Any subset of the three. |
 | `CHECK_INTERVAL` | `5` | Minutes between cycles. |
-| `SOURCES` | `mercadolibre,argenprop` | Which sources to poll. |
-| `NOTIFY_ON_FIRST_RUN` | `false` | On an empty database, record what exists without notifying. |
+| `SOURCES` | `mercadolibre,argenprop,cabaprop` | Which sources to poll. |
+| `NOTIFY_ON_FIRST_RUN` | `false` | On each source's first successful run, record what exists without notifying. |
 | `DATABASE_PATH` | `data/listings.sqlite3` | SQLite file. `/data/listings.sqlite3` in Docker. |
 | `LOG_LEVEL` / `LOG_FORMAT` | `INFO` / `text` | `LOG_FORMAT=json` emits one JSON object per line. |
 | `TZ` | `America/Argentina/Buenos_Aires` | Timezone used in messages and logs. |
@@ -230,6 +242,8 @@ bot token has a working default. Quote values that contain spaces
 | `ARGENPROP_MIN_INTERVAL_SECONDS` | `600` | ArgenProp is polled at most this often. |
 | `ARGENPROP_REQUEST_DELAY` / `MERCADOLIBRE_REQUEST_DELAY` | `20` / `2` | Seconds between requests to that host. |
 | `ARGENPROP_MAX_PAGES` / `MERCADOLIBRE_MAX_PAGES` | `1` / `3` | Pagination limit per search. |
+| `CABAPROP_PAGE_SIZE` / `CABAPROP_MAX_PAGES` | `30` / `1` | Newest listings fetched per CabaProp request, and how many pages. |
+| `CABAPROP_REQUEST_DELAY` / `CABAPROP_MIN_INTERVAL_SECONDS` | `5` / `0` | Pacing for CabaProp. |
 | `MERCADOLIBRE_MODE` | `html` | `api` uses the official API and needs `MELI_ACCESS_TOKEN` (unverified). |
 | `ZONAPROP_STRATEGY` | `disabled` | `http` or `provider` — see above. |
 | `CONFIG_FILE` | — | Optional JSON file with the same keys. Environment variables win. |
@@ -316,7 +330,8 @@ codes neighborhoods differently. Copy the built-in map from
 - `slugs` are what appears in each site's search URL.
 - `ids` are the site's internal location ids. ArgenProp prints the sub-barrio
   "Parque Las Heras" on cards it files under `idbarrio=4` (Barrio Norte), so the
-  id — not the printed label — is what gets such listings right.
+  id — not the printed label — is what gets such listings right. CabaProp
+  splits Barrio Norte into four ids (10, 11, 12, 13), all mapped to it.
 - `aliases` only ever match a site's structured location label, never an address.
 
 A neighborhood that is not in the map is rejected at startup with an
@@ -331,8 +346,9 @@ notification channels; if it warns that none is configured, the credentials are
 missing and messages are only being logged. For Telegram, send `/status` to the
 bot — silence means a wrong token or the service is not running. For email, a
 wrong Gmail password shows up as `email delivery failed ... 535`, which means you
-used the account password instead of an App Password. Remember that a fresh
-database stays quiet on its first cycle by design.
+used the account password instead of an App Password. Remember that each
+source stays quiet on its first successful cycle by design, including a source
+you enable later on an existing database.
 
 **A source says `blocked`.** ArgenProp's WAF returns `202` with an empty body
 when polled too hard; the source backs itself off automatically. If it persists,

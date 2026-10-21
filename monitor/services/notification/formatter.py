@@ -20,6 +20,7 @@ SOURCE_LABELS = {
     "zonaprop": "ZonaProp",
     "argenprop": "ArgenProp",
     "mercadolibre": "MercadoLibre",
+    "cabaprop": "CabaProp",
 }
 
 
