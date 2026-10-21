@@ -262,7 +262,9 @@ def load_config() -> Config:
     interval_minutes = _float("CHECK_INTERVAL", 5.0)
     check_interval_seconds = _int("CHECK_INTERVAL_SECONDS", int(interval_minutes * 60))
 
-    enabled_sources = [s.lower() for s in _list("SOURCES", ["mercadolibre", "argenprop"])]
+    enabled_sources = [
+        s.lower() for s in _list("SOURCES", ["mercadolibre", "argenprop", "cabaprop"])
+    ]
     sources = {
         "mercadolibre": SourceConfig(
             name="mercadolibre",
@@ -279,6 +281,15 @@ def load_config() -> Config:
             min_interval_seconds=_int("ARGENPROP_MIN_INTERVAL_SECONDS", 600),
             max_pages=_int("ARGENPROP_MAX_PAGES", 1),
             request_delay_seconds=_float("ARGENPROP_REQUEST_DELAY", 20.0),
+        ),
+        "cabaprop": SourceConfig(
+            name="cabaprop",
+            enabled="cabaprop" in enabled_sources,
+            # One JSON request per cycle covers every new listing (newest first).
+            min_interval_seconds=_int("CABAPROP_MIN_INTERVAL_SECONDS", 0),
+            max_pages=_int("CABAPROP_MAX_PAGES", 1),
+            request_delay_seconds=_float("CABAPROP_REQUEST_DELAY", 5.0),
+            options={"page_size": _int("CABAPROP_PAGE_SIZE", 30)},
         ),
         "zonaprop": SourceConfig(
             name="zonaprop",

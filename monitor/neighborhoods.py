@@ -23,7 +23,10 @@ from typing import Dict, List, Optional
 # "ids" holds a site's own internal location identifier, which is the most
 # reliable signal of all: ArgenProp renders sub-barrio names such as
 # "Parque Las Heras" on the card while classifying the listing under
-# idbarrio=4 (Barrio Norte). Values observed live on 2026-09-18.
+# idbarrio=4 (Barrio Norte). Values observed live on 2026-09-18; CabaProp ids
+# from its /api/v1/utils/barrios-obj on 2026-10-21 (it splits Barrio Norte
+# into four sub-zones: 10 Barrio Norte, 11 La Isla, 12 Parque Las Heras,
+# 13 Barrio Norte Recoleta).
 DEFAULT_NEIGHBORHOOD_MAP: Dict[str, Dict[str, object]] = {
     "Recoleta": {
         "aliases": ["recoleta", "barrio recoleta", "recoleta caba"],
@@ -32,7 +35,7 @@ DEFAULT_NEIGHBORHOOD_MAP: Dict[str, Dict[str, object]] = {
             "argenprop": ["recoleta"],
             "zonaprop": ["recoleta"],
         },
-        "ids": {"argenprop": ["12618"]},
+        "ids": {"argenprop": ["12618"], "cabaprop": ["88"]},
     },
     "Barrio Norte": {
         "aliases": ["barrio norte", "b norte", "bo norte", "barrio-norte"],
@@ -41,7 +44,7 @@ DEFAULT_NEIGHBORHOOD_MAP: Dict[str, Dict[str, object]] = {
             "argenprop": ["barrio-norte"],
             "zonaprop": ["barrio-norte"],
         },
-        "ids": {"argenprop": ["4"]},
+        "ids": {"argenprop": ["4"], "cabaprop": ["10", "11", "12", "13"]},
     },
 }
 

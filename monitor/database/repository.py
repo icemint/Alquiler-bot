@@ -241,6 +241,14 @@ class Database:
             row = self._conn.execute(query, params).fetchone()
         return int(row["n"])
 
+    def has_notified_listings(self, source: str) -> bool:
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT 1 FROM listings WHERE source = ? AND notified_at IS NOT NULL LIMIT 1",
+                (source,),
+            ).fetchone()
+        return row is not None
+
     def count_new_since(self, since: datetime, matched_only: bool = False) -> int:
         query = "SELECT COUNT(*) AS n FROM listings WHERE first_seen_at >= ?"
         if matched_only:

@@ -159,9 +159,10 @@ class MonitorService:
             if result.error:
                 errors.append(f"{result.source}: {result.error}")
 
-        report.suppressed_on_bootstrap = self._bootstrap_if_needed()
-        if report.suppressed_on_bootstrap == 0:
-            report.notifications_sent = self.notifications.notify_pending()
+        # Suppressed listings are already marked as notified, so the other
+        # sources' new listings can still go out in this cycle.
+        report.suppressed_on_bootstrap = self._bootstrap_if_needed(report)
+        report.notifications_sent = self.notifications.notify_pending()
 
         self.database.finish_cycle(
             cycle_id,
@@ -216,23 +217,41 @@ class MonitorService:
             reject_reasons=reasons,
         )
 
-    def _bootstrap_if_needed(self) -> int:
-        """First run on an empty database: record what exists, stay quiet."""
+    def _bootstrap_if_needed(self, report: CycleReport) -> int:
+        """A source's first successful run: record what exists, stay quiet.
+
+        Tracked per source, so enabling a new source on an existing database
+        does not flood subscribers with everything it already lists. A source
+        that has notified before (it predates per-source tracking) is only
+        marked, never suppressed.
+        """
         if self.config.notify_on_first_run:
             return 0
-        if self.database.get_state(BOOTSTRAP_KEY):
-            return 0
-        pending = self.database.pending_notifications(limit=10_000)
-        suppressed = self.database.suppress_notifications([item.dedupe_key for item in pending])
-        self.database.set_state(BOOTSTRAP_KEY, format_local(utcnow(), "%Y-%m-%dT%H:%M:%S"))
-        if suppressed:
-            log_context(
-                logger,
-                logging.INFO,
-                "first run: existing listings recorded without notifying",
-                suppressed=suppressed,
-            )
-        return suppressed
+        total = 0
+        for source in report.sources:
+            if source.status is not SourceStatus.OK:
+                continue
+            key = f"{BOOTSTRAP_KEY}:{source.source}"
+            if self.database.get_state(key):
+                continue
+            if not self.database.has_notified_listings(source.source):
+                pending = [
+                    item.dedupe_key
+                    for item in self.database.pending_notifications(limit=10_000)
+                    if item.listing.source == source.source
+                ]
+                suppressed = self.database.suppress_notifications(pending)
+                total += suppressed
+                if suppressed:
+                    log_context(
+                        logger,
+                        logging.INFO,
+                        "first run: existing listings recorded without notifying",
+                        source=source.source,
+                        suppressed=suppressed,
+                    )
+            self.database.set_state(key, format_local(utcnow(), "%Y-%m-%dT%H:%M:%S"))
+        return total
 
     def _log_cycle(self, report: CycleReport) -> None:
         for source in report.sources:
