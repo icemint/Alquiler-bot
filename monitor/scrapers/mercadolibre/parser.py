@@ -100,10 +100,14 @@ def parse_search_page(
 ) -> List[Listing]:
     """Turn one search results page into normalized listings.
 
-    ``requested_neighborhood`` is only recorded for troubleshooting: the
-    neighborhood is always taken from the card's own location field, never
-    from the search we happened to run.
+    ``requested_neighborhood`` is the location path searched. The location is
+    taken from the card's own location field; the search only fills in a
+    barrio the card leaves out. Some cards name nothing below the city (the
+    centre of Mendoza reads "Necochea 80, Mendoza"), and a barrio search
+    returns only that barrio, so such a card is in the barrio searched. A card
+    naming another city or barrio keeps what it says.
     """
+    searched = resolver.from_slug(SOURCE, requested_neighborhood)
     soup = BeautifulSoup(html, "html.parser")
     listings: List[Listing] = []
 
@@ -147,6 +151,14 @@ def parse_search_page(
         location = normalize_spaces(location_node.get_text()) if location_node else None
         parts = [part.strip() for part in (location or "").split(",") if part.strip()]
         location_found = resolver.from_location_path(SOURCE, parts)
+        if (
+            searched
+            and searched.neighborhood
+            and location_found
+            and location_found.city == searched.city
+            and not location_found.neighborhood
+        ):
+            location_found = searched
         address = parts[0] if len(parts) > 1 else None
 
         listings.append(

@@ -15,8 +15,15 @@ def test_normalize_text_strips_accents_and_punctuation():
 
 def test_resolves_canonical_names_and_aliases(resolver):
     assert resolver.from_label("Recoleta") == Location("CABA", "Recoleta")
-    assert resolver.from_label("barrio norte") == Location("CABA", "Barrio Norte")
-    assert resolver.from_label("BARRIO-NORTE") == Location("CABA", "Barrio Norte")
+    assert resolver.from_label("barrio norte", "CABA") == Location("CABA", "Barrio Norte")
+    assert resolver.from_label("BARRIO-NORTE", "CABA") == Location("CABA", "Barrio Norte")
+
+
+def test_a_name_shared_by_several_cities_needs_the_city(resolver):
+    # San Miguel de Tucumán has a Barrio Norte too.
+    assert resolver.from_label("Barrio Norte") is None
+    assert resolver.from_label("Barrio Norte", "Tucumán") == Location("Tucumán", "Barrio Norte")
+    assert resolver.resolve_key("Barrio Norte") == "CABA/Barrio Norte"
 
 
 def test_site_sub_zones_fold_into_their_barrio(resolver):
@@ -119,3 +126,42 @@ def test_the_most_specific_city_wins(resolver):
     assert resolver.from_location_path(
         "mercadolibre", ["Calle 46 Al 525", "La Plata", "Bs.As. G.B.A. Sur"]
     ) == Location("La Plata")
+
+
+def test_catalog_has_every_city():
+    assert NeighborhoodResolver().cities() == [
+        "CABA",
+        "AMBA",
+        "La Plata",
+        "Rosario",
+        "Córdoba",
+        "Mendoza",
+        "Mar del Plata",
+        "Bariloche",
+        "Salta",
+        "Neuquén",
+        "Tucumán",
+    ]
+
+
+def test_cards_of_other_cities_resolve(resolver):
+    # As MercadoLibre prints them; where the city and its province share a
+    # name, the card names it once.
+    cards = {
+        ("Nueva Córdoba", "Córdoba"): Location("Córdoba", "Nueva Córdoba"),
+        ("Centro", "Rosario", "Santa Fe"): Location("Rosario", "Centro"),
+        ("Godoy Cruz", "Mendoza"): Location("Mendoza", "Godoy Cruz"),
+        ("Necochea 80", "Mendoza"): Location("Mendoza"),
+        ("Playa Grande", "Mar Del Plata", "Bs.As. Costa Atlántica"): Location(
+            "Mar del Plata", "Playa Grande"
+        ),
+        ("San Carlos De Bariloche", "Belgrano", "Bariloche", "Río Negro"): Location(
+            "Bariloche", "Belgrano"
+        ),
+        ("Barrio Norte", "San Miguel De Tucumán", "Tucumán"): Location("Tucumán", "Barrio Norte"),
+        ("Yerba Buena", "Tucumán"): Location("Tucumán", "Yerba Buena"),
+        ("Otros Barrios", "Neuquén"): Location("Neuquén"),
+        ("Tolosa", "La Plata", "Bs.As. G.B.A. Sur"): Location("La Plata", "Tolosa"),
+    }
+    for parts, expected in cards.items():
+        assert resolver.from_location_path("mercadolibre", list(parts)) == expected, parts
