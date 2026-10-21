@@ -94,26 +94,84 @@ def test_settings_shows_the_chat_search_with_buttons(bot):
     assert "Your search" in reply.text
     assert "Recoleta, Barrio Norte" in reply.text
     data = [button["callback_data"] for row in reply.keyboard for button in row]
-    assert {"s:hoods", "s:types", "s:rent", "s:area", "s:done"} <= set(data)
+    assert {"s:loc", "s:types", "s:rent", "s:area", "s:done"} <= set(data)
 
 
-def test_toggling_a_neighborhood_saves_it_for_that_chat_only(bot):
-    reply = bot.handle_callback("7", "s:hoods")
-    labels = [button["text"] for row in reply.keyboard for button in row]
-    assert "✅ Recoleta" in labels
-
-    index = bot.neighborhoods.index("Barrio Norte")
-    reply = bot.handle_callback("7", f"h:{index}")
-    assert "▫️ Barrio Norte" in [button["text"] for row in reply.keyboard for button in row]
-    assert bot._criteria("7").neighborhoods == ["Recoleta"]
-    assert bot._criteria("8").neighborhoods == ["Recoleta", "Barrio Norte"]
+def labels(reply):
+    return [button["text"] for row in reply.keyboard for button in row]
 
 
-def test_the_last_neighborhood_cannot_be_removed(bot):
-    bot.handle_callback("7", "h:{0}".format(bot.neighborhoods.index("Barrio Norte")))
-    reply = bot.handle_callback("7", "h:{0}".format(bot.neighborhoods.index("Recoleta")))
-    assert reply.toast
-    assert bot._criteria("7").neighborhoods == ["Recoleta"]
+def barrio_button(bot, city, barrio, back="0"):
+    city_index = bot.cities.index(city)
+    barrio_index = bot.resolver.neighborhoods(city).index(barrio)
+    return f"bt:{city_index}:{barrio_index}:{back}"
+
+
+def test_location_lists_cities_and_their_barrio_choice(bot):
+    reply = bot.handle_callback("7", "s:loc")
+    assert {"✅ CABA", "▫️ AMBA", "📍 CABA: 2 barrios ›"} <= set(labels(reply))
+
+
+def test_toggling_a_barrio_saves_it_for_that_chat_only(bot):
+    reply = bot.handle_callback("7", barrio_button(bot, "CABA", "Barrio Norte"))
+    assert "▫️ Barrio Norte" in labels(reply)
+    assert bot._criteria("7").neighborhoods == ["CABA/Recoleta"]
+    assert bot._criteria("8").neighborhoods == ["CABA/Recoleta", "CABA/Barrio Norte"]
+
+
+def test_removing_the_last_barrio_searches_the_whole_city(bot):
+    bot.handle_callback("7", barrio_button(bot, "CABA", "Barrio Norte"))
+    reply = bot.handle_callback("7", barrio_button(bot, "CABA", "Recoleta"))
+    assert "all of CABA" in reply.toast
+    assert bot._criteria("7").neighborhoods == []
+    assert bot._criteria("7").cities == ["CABA"]
+    assert "✅ All of CABA" in labels(reply)
+
+
+def test_all_of_a_city_clears_its_barrios(bot):
+    bot.handle_callback("7", "ba:{0}".format(bot.cities.index("CABA")))
+    assert bot._criteria("7").barrios_in("CABA") == []
+
+
+def test_adding_a_city_searches_it_whole(bot):
+    bot.handle_callback("7", "c:{0}".format(bot.cities.index("AMBA")))
+    criteria = bot._criteria("7")
+    assert criteria.cities == ["CABA", "AMBA"]
+    assert criteria.barrios_in("AMBA") == []
+    assert "AMBA: all barrios" in criteria.describe_location()
+
+
+def test_removing_a_city_drops_its_barrios_but_not_the_last_city(bot):
+    bot.handle_callback("7", "c:{0}".format(bot.cities.index("AMBA")))
+    bot.handle_callback("7", barrio_button(bot, "AMBA", "Tigre"))
+    bot.handle_callback("7", "c:{0}".format(bot.cities.index("AMBA")))
+    assert bot._criteria("7").cities == ["CABA"]
+    assert all(key.startswith("CABA/") for key in bot._criteria("7").neighborhoods)
+
+    reply = bot.handle_callback("7", "c:{0}".format(bot.cities.index("CABA")))
+    assert reply.toast == "Keep at least one city"
+
+
+def test_barrio_list_is_paged(bot):
+    city = bot.cities.index("CABA")
+    first = bot.handle_callback("7", f"bl:{city}:0")
+    second = bot.handle_callback("7", f"bl:{city}:1")
+    assert "page 1/" in first.text and "page 2/" in second.text
+    assert "▶️" in labels(first) and "◀️" in labels(second)
+    assert set(labels(first)) != set(labels(second))
+
+
+def test_typed_search_finds_barrios_and_toggles_from_the_results(bot):
+    city = bot.cities.index("CABA")
+    bot.handle_callback("7", f"bs:{city}")
+    reply = bot.handle_text("7", "villa c")
+    assert labels(reply)[:1] == ["▫️ Villa Crespo"]
+
+    reply = bot.handle_callback("7", barrio_button(bot, "CABA", "Villa Crespo", "s"))
+    assert "✅ Villa Crespo" in labels(reply)
+    assert "CABA/Villa Crespo" in bot._criteria("7").neighborhoods
+    # Still in search mode: another name searches again.
+    assert "Palermo" in " ".join(labels(bot.handle_text("7", "paler")))
 
 
 def test_toggling_property_types(bot):

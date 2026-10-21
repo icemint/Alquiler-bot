@@ -51,6 +51,7 @@ def item_to_listing(item: Dict[str, Any], resolver: NeighborhoodResolver) -> Lis
     location = item.get("location") or {}
     neighborhood_name = (location.get("neighborhood") or {}).get("name")
     city_name = (location.get("city") or {}).get("name")
+    location = resolver.from_location_path(SOURCE, [city_name, neighborhood_name])
     address_line = (item.get("seller_address") or {}).get("address_line") or None
 
     total_area = _number(_attribute(item, "TOTAL_AREA"))
@@ -68,7 +69,8 @@ def item_to_listing(item: Dict[str, Any], resolver: NeighborhoodResolver) -> Lis
         if property_type_raw
         else PropertyType.OTHER,
         operation=parse_operation(operation_raw) if operation_raw else Operation.OTHER,
-        neighborhood=resolver.from_location_path(SOURCE, [city_name, neighborhood_name]),
+        city=location.city if location else None,
+        neighborhood=location.neighborhood if location else None,
         raw_neighborhood=neighborhood_name,
         address=address_line,
         price=item.get("price"),

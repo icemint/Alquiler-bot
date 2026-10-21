@@ -141,3 +141,52 @@ def test_criteria_can_be_reconfigured():
     strict = ListingFilter(criteria)
     assert strict.evaluate(make_listing()).accepted is False
     assert strict.evaluate(make_listing(price=400_000, area_m2=120)).accepted is True
+
+
+# ---------------------------------------------------------------- cities
+
+
+def test_a_city_searched_as_a_whole_accepts_any_of_its_barrios():
+    criteria = SearchCriteria(cities=["AMBA"], neighborhoods=[])
+    listing_filter = ListingFilter(criteria)
+    assert listing_filter.evaluate(make_listing(city="AMBA", neighborhood="Tigre")).accepted
+    # Even when the barrio could not be told: the city is enough.
+    assert listing_filter.evaluate(make_listing(city="AMBA", neighborhood=None)).accepted
+
+
+def test_a_listing_in_another_city_is_rejected():
+    decision = ListingFilter(SearchCriteria()).evaluate(make_listing(city="AMBA"))
+    assert decision.reason is RejectReason.CITY_NOT_ALLOWED
+
+
+def test_chosen_barrios_need_a_known_barrio():
+    decision = ListingFilter(SearchCriteria()).evaluate(make_listing(neighborhood=None))
+    assert decision.reason is RejectReason.NEIGHBORHOOD_UNKNOWN
+
+
+def test_barrios_are_compared_within_their_city():
+    criteria = SearchCriteria(cities=["CABA", "AMBA"], neighborhoods=["AMBA/Tigre"])
+    listing_filter = ListingFilter(criteria)
+    # CABA has no barrio chosen, so it is searched whole...
+    assert listing_filter.evaluate(make_listing(neighborhood="Palermo")).accepted
+    # ...while in AMBA only Tigre counts.
+    assert not listing_filter.evaluate(make_listing(city="AMBA", neighborhood="Pilar")).accepted
+
+
+def test_union_searches_a_city_whole_if_anyone_does():
+    union = SearchCriteria.union(
+        [
+            SearchCriteria(cities=["CABA"], neighborhoods=["CABA/Recoleta"]),
+            SearchCriteria(cities=["CABA", "AMBA"], neighborhoods=["CABA/Palermo"]),
+            SearchCriteria(cities=["AMBA"], neighborhoods=[]),
+        ]
+    )
+    assert union.cities == ["CABA", "AMBA"]
+    assert union.neighborhoods == ["CABA/Recoleta", "CABA/Palermo"]
+    assert union.barrios_in("AMBA") == []
+
+
+def test_searches_stored_before_cities_existed_still_load():
+    criteria = SearchCriteria().with_changes({"neighborhoods": ["Recoleta"]})
+    assert criteria.cities == ["CABA"]
+    assert criteria.neighborhoods == ["CABA/Recoleta"]

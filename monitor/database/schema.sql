@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS listings (
     title                TEXT,
     property_type        TEXT,
     operation            TEXT,
+    city                 TEXT,
     neighborhood         TEXT,
     raw_neighborhood     TEXT,
     address              TEXT,

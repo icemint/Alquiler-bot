@@ -45,6 +45,11 @@ def format_area(area: Optional[float]) -> str:
     return f"{area:.1f} m²"
 
 
+def place(listing: Listing) -> str:
+    """Barrio and city, e.g. Recoleta, CABA; just the city when the barrio is unknown."""
+    return ", ".join(part for part in (listing.neighborhood, listing.city) if part) or "-"
+
+
 def _yes_no(value: bool) -> str:
     return "yes" if value else "no"
 
@@ -57,7 +62,7 @@ def format_listing(listing: Listing, detected_at: Optional[datetime] = None) -> 
         f"Source: {escape(source_label(listing.source))}",
         "",
         f"Type: {escape(listing.property_type.value)}",
-        "Neighborhood: {0}".format(escape(listing.neighborhood or "-")),
+        f"Neighborhood: {escape(place(listing))}",
         f"Price: {format_money(listing.price, listing.currency)}",
         f"Area: {format_area(listing.area_m2)}",
     ]
@@ -137,7 +142,7 @@ def format_group(items: Sequence[StoredListing], detected_at: Optional[datetime]
             "{index}. <b>{type} · {hood}</b> — {details}".format(
                 index=index,
                 type=escape(listing.property_type.value),
-                hood=escape(listing.neighborhood or "-"),
+                hood=escape(place(listing)),
                 details=escape(" · ".join(details)),
             )
         )
@@ -156,7 +161,7 @@ def _plain_listing(listing: Listing, detected_at: Optional[datetime] = None) -> 
         f"Source: {source_label(listing.source)}",
         "",
         f"Type: {listing.property_type.value}",
-        f"Neighborhood: {listing.neighborhood or '-'}",
+        f"Neighborhood: {place(listing)}",
         f"Price: {format_money(listing.price, listing.currency)}",
         f"Area: {format_area(listing.area_m2)}",
     ]
@@ -187,7 +192,7 @@ def _email_row(label: str, value: str) -> str:
 def _email_listing_card(listing: Listing) -> str:
     rows = [
         _email_row("Type", escape(listing.property_type.value)),
-        _email_row("Neighborhood", escape(listing.neighborhood or "-")),
+        _email_row("Neighborhood", escape(place(listing))),
         _email_row("Price", escape(format_money(listing.price, listing.currency))),
         _email_row("Area", escape(format_area(listing.area_m2))),
     ]
@@ -238,7 +243,9 @@ def build_listing_message(
     when = detected_at or utcnow()
     price = format_money(listing.price, listing.currency)
     subject = "{type} in {hood} - {price}".format(
-        type=listing.property_type.value, hood=listing.neighborhood or "CABA", price=price
+        type=listing.property_type.value,
+        hood=listing.neighborhood or listing.city or "-",
+        price=price,
     )
     return NotificationMessage(
         subject=subject,

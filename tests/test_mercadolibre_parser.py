@@ -48,8 +48,8 @@ def test_edge_cases_fixture(fixture_loader, resolver):
     assert desde.neighborhood == "Barrio Norte"
     assert desde.price_is_approximate is True
 
-    outside = by_id["MLA3333333333"]
-    assert outside.neighborhood is None  # Palermo is not in the map
+    elsewhere = by_id["MLA3333333333"]
+    assert (elsewhere.city, elsewhere.neighborhood) == ("CABA", "Palermo")
 
     temporary = by_id["MLA4444444444"]
     assert temporary.operation is Operation.ALQUILER_TEMPORAL

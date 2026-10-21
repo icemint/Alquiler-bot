@@ -55,6 +55,9 @@ class Listing:
     title: Optional[str] = None
     property_type: PropertyType = PropertyType.OTHER
     operation: Operation = Operation.OTHER
+    # Canonical city and barrio (see monitor/neighborhoods.py). A listing can
+    # have a known city and an unknown barrio.
+    city: Optional[str] = None
     neighborhood: Optional[str] = None
     raw_neighborhood: Optional[str] = None
     address: Optional[str] = None

@@ -27,6 +27,7 @@ from monitor.timeutil import from_iso
 logger = logging.getLogger(__name__)
 
 SOURCE = "cabaprop"
+CITY = "CABA"  # CabaProp lists nothing else
 BASE_URL = "https://cabaprop.com.ar"
 
 CURRENCIES = {1: "USD", 2: "ARS"}
@@ -87,11 +88,7 @@ def item_to_listing(item: Dict[str, Any], resolver: NeighborhoodResolver) -> Lis
     characteristics = item.get("characteristics") or {}
 
     barrio_ids = [str(b) for b in location.get("barrios") or []]
-    neighborhood = None
-    for barrio_id in reversed(barrio_ids):
-        neighborhood = resolver.from_id(SOURCE, barrio_id)
-        if neighborhood:
-            break
+    found = resolver.from_ids(SOURCE, reversed(barrio_ids))
 
     street = " ".join(
         str(part) for part in (location.get("street"), location.get("number")) if part
@@ -109,7 +106,8 @@ def item_to_listing(item: Dict[str, Any], resolver: NeighborhoodResolver) -> Lis
         title=item.get("title"),
         property_type=PROPERTY_TYPES.get(item.get("property_type"), PropertyType.OTHER),
         operation=OPERATIONS.get(item.get("operation_type"), Operation.OTHER),
-        neighborhood=neighborhood,
+        city=CITY,
+        neighborhood=found.neighborhood if found else None,
         raw_neighborhood=",".join(barrio_ids) or None,
         address=street or None,
         price=_positive(price.get("total")),
