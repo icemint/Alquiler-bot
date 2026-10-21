@@ -13,24 +13,30 @@ import smtplib
 import time
 from email.message import EmailMessage
 from email.utils import formataddr
-from typing import List, Optional
+from functools import partial
+from typing import Dict, List, Optional, Set
 
 import requests
 
-from monitor.config import EmailConfig, TelegramConfig
+from monitor.config import EmailConfig, SearchCriteria, TelegramConfig
 from monitor.database import Database, StoredListing
 from monitor.logging_setup import log_context
+from monitor.services.filtering import ListingFilter
 from monitor.services.notification.formatter import (
     build_group_message,
     build_listing_message,
     chunk_for_group,
 )
 from monitor.services.notification.message import NotificationMessage
+from monitor.services.subscriptions import subscriber_criteria
 
 logger = logging.getLogger(__name__)
 
 TELEGRAM_API = "https://api.telegram.org/bot{token}/{method}"
 MAX_MESSAGE_LENGTH = 4000
+# Returned by TelegramNotifier._call when the chat blocked the bot: not a
+# delivery, but nothing to retry either.
+_BLOCKED: dict = {"ok": False, "blocked": True}
 
 
 class Notifier(abc.ABC):
@@ -45,6 +51,16 @@ class Notifier(abc.ABC):
     @property
     def available(self) -> bool:
         return True
+
+
+class RecipientNotifier(Notifier):
+    """A channel that can address one subscriber at a time, so each one
+    gets only the listings matching their own search."""
+
+    @abc.abstractmethod
+    def send_to(self, chat_id: str, message: NotificationMessage) -> bool:
+        """Deliver to one chat. True when delivered, or when the chat is gone
+        and retrying is pointless."""
 
 
 class LoggingNotifier(Notifier):
@@ -140,8 +156,8 @@ class EmailNotifier(Notifier):
         return True
 
 
-class TelegramNotifier(Notifier):
-    """Sends every message to each active subscriber (chats that sent /start)."""
+class TelegramNotifier(RecipientNotifier):
+    """Sends to the chats that sent /start."""
 
     name = "telegram"
 
@@ -193,7 +209,7 @@ class TelegramNotifier(Notifier):
                 chat_id=chat_id,
                 description=data.get("description"),
             )
-            return None
+            return _BLOCKED
         if not data.get("ok"):
             log_context(
                 logger,
@@ -205,10 +221,23 @@ class TelegramNotifier(Notifier):
             return None
         return data
 
-    def send(self, message: NotificationMessage) -> bool:
+    def send_to(self, chat_id: str, message: NotificationMessage) -> bool:
         text = message.telegram_html
         if len(text) > MAX_MESSAGE_LENGTH:
             text = text[: MAX_MESSAGE_LENGTH - 20] + "\n… (truncated)"
+        result = self._call(
+            "sendMessage",
+            {
+                "chat_id": chat_id,
+                "text": text,
+                "parse_mode": "HTML",
+                "disable_web_page_preview": True,
+            },
+        )
+        return result is not None
+
+    def send(self, message: NotificationMessage) -> bool:
+        """The same message to every active subscriber."""
         subscribers = self.database.active_subscribers()
         if not subscribers:
             # Nobody to tell: treat it as delivered so the queue does not grow.
@@ -217,26 +246,29 @@ class TelegramNotifier(Notifier):
         # Same rule as CompositeNotifier: one successful delivery is enough.
         delivered = False
         for chat_id in subscribers:
-            result = self._call(
-                "sendMessage",
-                {
-                    "chat_id": chat_id,
-                    "text": text,
-                    "parse_mode": "HTML",
-                    "disable_web_page_preview": True,
-                },
-            )
-            delivered = delivered or result is not None
+            delivered = self.send_to(chat_id, message) or delivered
         return delivered
 
 
 class NotificationService:
-    """Turns the pending queue into messages, exactly once per listing."""
+    """Turns the pending queue into messages, exactly once per listing and chat.
 
-    def __init__(self, database: Database, notifier: Notifier, config: TelegramConfig) -> None:
+    With a channel that can address single chats (Telegram), each subscriber
+    gets the pending listings that match their own search. Any other channel
+    gets every pending listing, as one broadcast.
+    """
+
+    def __init__(
+        self,
+        database: Database,
+        notifier: Notifier,
+        config: TelegramConfig,
+        default_criteria: Optional[SearchCriteria] = None,
+    ) -> None:
         self.database = database
         self.notifier = notifier
         self.config = config
+        self.default_criteria = default_criteria or SearchCriteria()
 
     def notify_pending(self) -> int:
         pending: List[StoredListing] = self.database.pending_notifications(
@@ -250,26 +282,63 @@ class NotificationService:
         # is retried a bounded number of times instead of forever.
         self.database.record_notification_attempt(keys)
 
-        if len(pending) > self.config.group_threshold:
-            sent_count = 0
-            for chunk in chunk_for_group(pending, MAX_MESSAGE_LENGTH):
-                if not self.notifier.send(build_group_message(chunk)):
-                    break
-                self.database.mark_notified([item.dedupe_key for item in chunk])
-                sent_count += len(chunk)
-                time.sleep(0.5)
-            return sent_count
+        if isinstance(self.notifier, RecipientNotifier):
+            return self._notify_subscribers(pending)
 
-        sent: List[str] = []
-        for item in pending:
-            detected_at = item.first_seen_at
-            if self.notifier.send(build_listing_message(item.listing, detected_at)):
-                sent.append(item.dedupe_key)
-                time.sleep(0.5)  # stay well inside Telegram's rate limits
-            else:
-                break
+        sent = self._deliver(self.notifier.send, pending)
         self.database.mark_notified(sent)
         return len(sent)
+
+    def _notify_subscribers(self, pending: List[StoredListing]) -> int:
+        assert isinstance(self.notifier, RecipientNotifier)
+        keys = [item.dedupe_key for item in pending]
+        searches: Dict[str, SearchCriteria] = subscriber_criteria(
+            self.database, self.default_criteria
+        )
+        if not searches:
+            logger.info("no subscribers: %s listing(s) recorded without sending", len(keys))
+            self.database.mark_notified(keys)
+            return 0
+
+        sent_total = 0
+        # Listings some chat still has to receive stay pending for a retry;
+        # the deliveries table keeps the others from getting them twice.
+        unfinished: Set[str] = set()
+        for chat_id, criteria in searches.items():
+            listing_filter = ListingFilter(criteria)
+            already = set(self.database.delivered_keys(chat_id, keys))
+            mine = [
+                item
+                for item in pending
+                if item.dedupe_key not in already and listing_filter.evaluate(item.listing).accepted
+            ]
+            if not mine:
+                continue
+            sent = self._deliver(partial(self.notifier.send_to, chat_id), mine)
+            self.database.record_deliveries(chat_id, sent)
+            sent_total += len(sent)
+            unfinished.update(item.dedupe_key for item in mine[len(sent) :])
+        self.database.mark_notified([key for key in keys if key not in unfinished])
+        return sent_total
+
+    def _deliver(self, send, items: List[StoredListing]) -> List[str]:
+        """Send ``items`` in order, as a digest when there are many; stops at
+        the first failure. Returns the keys that went out."""
+        sent: List[str] = []
+        if len(items) > self.config.group_threshold:
+            for chunk in chunk_for_group(items, MAX_MESSAGE_LENGTH):
+                if not send(build_group_message(chunk)):
+                    break
+                sent.extend(item.dedupe_key for item in chunk)
+                time.sleep(0.5)
+            return sent
+
+        for item in items:
+            if not send(build_listing_message(item.listing, item.first_seen_at)):
+                break
+            sent.append(item.dedupe_key)
+            time.sleep(0.5)  # stay well inside Telegram's rate limits
+        return sent
 
 
 def build_notifier(

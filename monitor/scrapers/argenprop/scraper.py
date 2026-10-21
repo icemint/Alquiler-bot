@@ -43,7 +43,7 @@ class ArgenPropScraper(BaseScraper):
         combined by ``-o-``, so with three or more neighborhoods we fall back
         to one request per neighborhood.
         """
-        slugs = [self._slug_for(name) for name in self.config.criteria.neighborhoods]
+        slugs = [self._slug_for(name) for name in self.criteria.neighborhoods]
         slugs = [slug for slug in slugs if slug]
         if not slugs:
             return None
@@ -67,14 +67,14 @@ class ArgenPropScraper(BaseScraper):
         if combined:
             segments.append(combined)
         else:
-            for name in self.config.criteria.neighborhoods:
+            for name in self.criteria.neighborhoods:
                 slug = self._slug_for(name)
                 if slug:
                     segments.append(slug)
 
         listings: List[Listing] = []
         for segment in segments:
-            for property_type in self.config.criteria.property_types:
+            for property_type in self.criteria.property_types:
                 if property_type not in TYPE_SLUGS:
                     continue
                 for page in range(1, self.source_config.max_pages + 1):

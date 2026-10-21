@@ -28,7 +28,9 @@ before. The SQLite database makes that memory survive restarts.
 - Sends a Telegram message and/or an email per new listing, or one grouped
   digest when a single cycle turns up many.
 - Lets anyone subscribe: `/start` in the bot subscribes a chat, `/stop`
-  unsubscribes; `/status` and `/stats` show the monitor's health.
+  unsubscribes; `/status` shows when the sites were last checked.
+- Gives every subscriber their own search: `/settings` changes neighborhoods,
+  property types, maximum rent and minimum area with buttons.
 
 ### What it deliberately does *not* do
 
@@ -59,7 +61,7 @@ monitor/
 │   └── notification/    message formatting + Telegram delivery
 ├── database/            SQLite schema and repository
 ├── scheduler/           the monitoring cycle and the loop
-└── telegram/            /start, /stop, /status, /stats command bot
+└── telegram/            /start, /settings, /stop, /status command bot
 ```
 
 The dependency direction is one-way: scrapers know nothing about SQLite or
@@ -143,7 +145,8 @@ every five minutes, not dozens of requests a second.
 ## 4. Notification channels
 
 Telegram is the main channel: every chat that sent `/start` to the bot gets
-every new listing. Email is optional and off in `.env.example`
+the new listings matching its own search (see [Changing the search
+criteria](#8-changing-the-search-criteria)). Email is optional and off in `.env.example`
 (`EMAIL_ENABLED=false`). Telegram and email are independent: configure either,
 or both. Every configured
 channel receives every notification, and a listing counts as delivered as soon
@@ -204,8 +207,8 @@ Look for `"chat": {"id": 123456789, ...}` — that number is `TELEGRAM_CHAT_ID`.
 For a group, add the bot to the group, post a message there, and use the group's
 negative id (e.g. `-1001234567890`).
 
-The bot answers everyone. `/status` and `/stats` show only aggregate counts,
-never who is subscribed. Subscribers are stored in the `subscribers` table of
+The bot answers everyone. `/status` shows only the last check and the chat's
+own filters, never who is subscribed. Subscribers are stored in the `subscribers` table of
 the SQLite database.
 
 ---
@@ -226,11 +229,11 @@ bot token has a working default. Quote values that contain spaces
 | `EMAIL_FROM` / `EMAIL_FROM_NAME` | `SMTP_USER` / `CABA Rental Monitor` | Sender identity. |
 | `EMAIL_SUBJECT_PREFIX` | `[Alquiler] ` | Prefix on every subject, handy for inbox filters. |
 | `EMAIL_ENABLED` | `true` | Set to `false` to keep the settings but mute the channel. |
-| `MAX_RENT` | `1000000` | Maximum **rent**. Expensas are never added to it. |
-| `MIN_AREA` | `50` | Minimum area in m². |
+| `MAX_RENT` | `1000000` | Default maximum **rent**. Expensas are never added to it. |
+| `MIN_AREA` | `50` | Default minimum area in m². |
 | `CURRENCY` | `ARS` | Listings in any other currency are rejected. |
-| `NEIGHBORHOODS` | `Recoleta,Barrio Norte` | Must exist in the neighborhood map. |
-| `PROPERTY_TYPES` | `Departamento,Casa,PH` | Any subset of the three. |
+| `NEIGHBORHOODS` | `Recoleta,Barrio Norte` | Default neighborhoods. Must exist in the neighborhood map. |
+| `PROPERTY_TYPES` | `Departamento,Casa,PH` | Default types. Any subset of the three. |
 | `CHECK_INTERVAL` | `5` | Minutes between cycles. |
 | `SOURCES` | `mercadolibre,argenprop,cabaprop` | Which sources to poll. |
 | `NOTIFY_ON_FIRST_RUN` | `false` | On each source's first successful run, record what exists without notifying. |
@@ -303,7 +306,26 @@ The parser tests run against HTML captured from the live sites
 
 ## 8. Changing the search criteria
 
-Edit `.env` (or the `CONFIG_FILE` JSON) and restart:
+Each subscriber sets their own search in the bot with `/settings`: tap
+neighborhoods and property types on or off, and pick a maximum rent and a
+minimum area from the buttons or type a number. The search is stored per chat in
+the `subscriber_criteria` table, and takes effect from the next cycle.
+
+The sites are asked once per cycle for the union of all active subscribers'
+searches (every neighborhood and type anyone chose, the highest rent limit, the
+smallest area); each subscriber's own filter then picks their listings out of
+that. `deliveries` records which listing went to which chat.
+
+When a subscriber widens the search (a new neighborhood, a higher rent limit),
+the sites start returning listings that have been there all along. On that
+cycle those are recorded without notifying, just like a source's first run;
+listings the previous search would also have covered are still announced.
+Each subscriber gets listings that appear after they set their search, not the
+backlog.
+
+The configuration below is the **default search**: what a new subscriber starts
+with and what applies to chats that never opened `/settings`. Edit `.env` (or
+the `CONFIG_FILE` JSON) and restart:
 
 ```bash
 MAX_RENT=1500000

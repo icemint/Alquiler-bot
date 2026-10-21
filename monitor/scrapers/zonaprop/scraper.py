@@ -57,8 +57,8 @@ class ZonaPropScraper(BaseScraper):
             base=BASE_URL,
             type_slug=TYPE_SLUGS.get(property_type, "departamentos"),
             hood=neighborhood_slug,
-            area=int(self.config.criteria.min_area_m2),
-            price=int(self.config.criteria.max_rent),
+            area=int(self.criteria.min_area_m2),
+            price=int(self.criteria.max_rent),
         )
 
     def scrape(self) -> ScrapeResult:
@@ -87,13 +87,13 @@ class ZonaPropScraper(BaseScraper):
 
         # strategy == "http": a direct fetch, which is expected to be blocked.
         slug = "recoleta"
-        for name in self.config.criteria.neighborhoods:
+        for name in self.criteria.neighborhoods:
             config = self.resolver.mapping.get(name, {})
             slugs = (config.get("slugs") or {}).get(self.name) or []  # type: ignore[union-attr]
             if slugs:
                 slug = slugs[0]
                 break
-        self.fetch(self.build_url(self.config.criteria.property_types[0], slug))
+        self.fetch(self.build_url(self.criteria.property_types[0], slug))
         raise FetchError(
             "ZonaProp returned a page but no parser exists for its markup; "
             "see monitor/scrapers/zonaprop/scraper.py"

@@ -92,7 +92,7 @@ class MercadoLibreApiFetcher:
                 "MERCADOLIBRE_MODE=api requires MELI_ACCESS_TOKEN "
                 "(create an app at developers.mercadolibre.com)"
             )
-        criteria = self.scraper.config.criteria
+        criteria = self.scraper.criteria
         params = {
             "category": "MLA1473",  # Inmuebles
             "operation": "rent",

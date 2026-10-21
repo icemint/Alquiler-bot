@@ -44,7 +44,7 @@ class MercadoLibreScraper(BaseScraper):
         neighborhood_slug: str,
         offset: int = 0,
     ) -> str:
-        criteria = self.config.criteria
+        criteria = self.criteria
         segments = []
         if offset:
             segments.append(f"_Desde_{offset + 1}")
@@ -74,7 +74,7 @@ class MercadoLibreScraper(BaseScraper):
 
             return MercadoLibreApiFetcher(self).collect()
 
-        criteria = self.config.criteria
+        criteria = self.criteria
         listings: List[Listing] = []
         for neighborhood in criteria.neighborhoods:
             slug = self._slug_for(neighborhood)

@@ -8,13 +8,14 @@ complete the cycle.
 
 from __future__ import annotations
 
+import json
 import logging
 import threading
 from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Dict, List, Optional, Tuple
 
-from monitor.config import Config
+from monitor.config import Config, SearchCriteria
 from monitor.database import Database
 from monitor.logging_setup import log_context
 from monitor.models.listing import Listing
@@ -25,6 +26,7 @@ from monitor.services.deduplication import Deduplicator
 from monitor.services.filtering import FilterDecision, ListingFilter
 from monitor.services.notification import NotificationService
 from monitor.services.notification.notifier import Notifier, build_notifier
+from monitor.services.subscriptions import search_scope
 from monitor.timeutil import format_local, utcnow
 
 logger = logging.getLogger("monitor.scheduler")
@@ -34,6 +36,7 @@ logger = logging.getLogger("monitor.scheduler")
 BLOCK_BACKOFF_BASE = timedelta(minutes=15)
 BLOCK_BACKOFF_MAX = timedelta(hours=2)
 BOOTSTRAP_KEY = "bootstrap_completed_at"
+SCOPE_KEY = "search_scope"
 
 
 @dataclass
@@ -92,7 +95,9 @@ class MonitorService:
         self.filter = ListingFilter(config.criteria)
         self.deduplicator = Deduplicator(database)
         self.notifier = notifier or build_notifier(config.telegram, config.email, database)
-        self.notifications = NotificationService(database, self.notifier, config.telegram)
+        self.notifications = NotificationService(
+            database, self.notifier, config.telegram, config.criteria
+        )
         self._stop = threading.Event()
 
     # ------------------------------------------------------------------ helpers
@@ -136,10 +141,19 @@ class MonitorService:
 
     # ------------------------------------------------------------------ cycle
 
+    def _apply_scope(self) -> SearchCriteria:
+        """Ask the sites for every subscriber's search at once."""
+        scope = search_scope(self.database, self.config.criteria)
+        for scraper in self.scrapers:
+            scraper.criteria = scope
+        self.filter = ListingFilter(scope)
+        return scope
+
     def run_cycle(self) -> CycleReport:
         cycle_id = self.database.start_cycle()
         report = CycleReport()
         errors: List[str] = []
+        scope = self._apply_scope()
 
         for scraper in self.scrapers:
             skip_reason = self._should_skip(scraper)
@@ -162,6 +176,7 @@ class MonitorService:
         # Suppressed listings are already marked as notified, so the other
         # sources' new listings can still go out in this cycle.
         report.suppressed_on_bootstrap = self._bootstrap_if_needed(report)
+        report.suppressed_on_bootstrap += self._quiet_widened_scope(report, scope)
         report.notifications_sent = self.notifications.notify_pending()
 
         self.database.finish_cycle(
@@ -253,6 +268,45 @@ class MonitorService:
             self.database.set_state(key, format_local(utcnow(), "%Y-%m-%dT%H:%M:%S"))
         return total
 
+    def _quiet_widened_scope(self, report: CycleReport, scope: SearchCriteria) -> int:
+        """A wider search is like a new source: what it finds the first time
+        has been on the site all along.
+
+        When a subscriber adds a neighborhood or raises their price limit, the
+        site returns listings that were never asked for before. Those that the
+        previous search would not have covered are recorded without
+        notifying; those it would have covered are genuinely new.
+        """
+        current = json.dumps(scope.to_dict(), sort_keys=True)
+        total = 0
+        for source in report.sources:
+            if source.status is not SourceStatus.OK:
+                continue
+            key = f"{SCOPE_KEY}:{source.source}"
+            previous = self.database.get_state(key)
+            if previous == current:
+                continue
+            if previous:
+                old_filter = ListingFilter(scope.with_changes(json.loads(previous)))
+                outside = [
+                    item.dedupe_key
+                    for item in self.database.pending_notifications(limit=10_000)
+                    if item.listing.source == source.source
+                    and not old_filter.evaluate(item.listing).accepted
+                ]
+                suppressed = self.database.suppress_notifications(outside)
+                total += suppressed
+                if suppressed:
+                    log_context(
+                        logger,
+                        logging.INFO,
+                        "wider search: existing listings recorded without notifying",
+                        source=source.source,
+                        suppressed=suppressed,
+                    )
+            self.database.set_state(key, current)
+        return total
+
     def _log_cycle(self, report: CycleReport) -> None:
         for source in report.sources:
             if source.status is SourceStatus.OK:
@@ -304,7 +358,7 @@ class MonitorService:
             "monitor started",
             interval_seconds=interval,
             sources=",".join(s.name for s in self.scrapers) or "none",
-            criteria=self.config.criteria.describe(),
+            criteria=search_scope(self.database, self.config.criteria).describe(),
         )
         while not self._stop.is_set():
             started = utcnow()

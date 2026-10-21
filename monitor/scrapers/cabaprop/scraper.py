@@ -42,7 +42,7 @@ class CabaPropScraper(BaseScraper):
 
     def barrio_ids(self) -> List[int]:
         ids: List[int] = []
-        for neighborhood in self.config.criteria.neighborhoods:
+        for neighborhood in self.criteria.neighborhoods:
             config = self.resolver.mapping.get(neighborhood, {})
             source_ids = (config.get("ids") or {}).get(SOURCE) or []  # type: ignore[union-attr]
             if not source_ids:
@@ -53,7 +53,7 @@ class CabaPropScraper(BaseScraper):
         return ids
 
     def build_query(self) -> Dict[str, Any]:
-        criteria = self.config.criteria
+        criteria = self.criteria
         query: Dict[str, Any] = {
             "operationType": OPERATION_RENT,
             "propertyTypes": [TYPE_CODES[t] for t in criteria.property_types if t in TYPE_CODES],
