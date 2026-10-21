@@ -141,17 +141,19 @@ class EmailNotifier(Notifier):
 
 
 class TelegramNotifier(Notifier):
+    """Sends every message to each active subscriber (chats that sent /start)."""
+
     name = "telegram"
 
     def __init__(
         self,
         bot_token: str,
-        chat_id: str,
+        database: Database,
         timeout: float = 15.0,
         session: Optional[requests.Session] = None,
     ) -> None:
         self.bot_token = bot_token
-        self.chat_id = chat_id
+        self.database = database
         self.timeout = timeout
         self.session = session or requests.Session()
 
@@ -180,6 +182,18 @@ class TelegramNotifier(Notifier):
                 logger, logging.ERROR, "telegram returned non-JSON", status=response.status_code
             )
             return None
+        if response.status_code == 403:
+            # The user blocked the bot or deleted the chat: retrying is pointless.
+            chat_id = str(payload.get("chat_id", ""))
+            self.database.remove_subscriber(chat_id)
+            log_context(
+                logger,
+                logging.WARNING,
+                "subscriber removed: bot blocked",
+                chat_id=chat_id,
+                description=data.get("description"),
+            )
+            return None
         if not data.get("ok"):
             log_context(
                 logger,
@@ -195,16 +209,25 @@ class TelegramNotifier(Notifier):
         text = message.telegram_html
         if len(text) > MAX_MESSAGE_LENGTH:
             text = text[: MAX_MESSAGE_LENGTH - 20] + "\n… (truncated)"
-        result = self._call(
-            "sendMessage",
-            {
-                "chat_id": self.chat_id,
-                "text": text,
-                "parse_mode": "HTML",
-                "disable_web_page_preview": True,
-            },
-        )
-        return result is not None
+        subscribers = self.database.active_subscribers()
+        if not subscribers:
+            # Nobody to tell: treat it as delivered so the queue does not grow.
+            logger.info("no telegram subscribers, notification logged:\n%s", message.text)
+            return True
+        # Same rule as CompositeNotifier: one successful delivery is enough.
+        delivered = False
+        for chat_id in subscribers:
+            result = self._call(
+                "sendMessage",
+                {
+                    "chat_id": chat_id,
+                    "text": text,
+                    "parse_mode": "HTML",
+                    "disable_web_page_preview": True,
+                },
+            )
+            delivered = delivered or result is not None
+        return delivered
 
 
 class NotificationService:
@@ -249,11 +272,16 @@ class NotificationService:
         return len(sent)
 
 
-def build_notifier(telegram: TelegramConfig, email: Optional[EmailConfig] = None) -> Notifier:
+def build_notifier(
+    telegram: TelegramConfig,
+    email: Optional[EmailConfig] = None,
+    database: Optional[Database] = None,
+) -> Notifier:
     """Every configured channel is used; with none configured, messages are logged."""
     channels: List[Notifier] = []
-    if telegram.enabled and telegram.configured:
-        channels.append(TelegramNotifier(telegram.bot_token or "", telegram.chat_id or ""))
+    # Telegram recipients live in the database, so it is needed for that channel.
+    if telegram.enabled and telegram.configured and database is not None:
+        channels.append(TelegramNotifier(telegram.bot_token or "", database))
     if email is not None and email.enabled and email.configured:
         channels.append(EmailNotifier(email))
     if not channels:

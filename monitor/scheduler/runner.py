@@ -91,7 +91,7 @@ class MonitorService:
         self.scrapers = scrapers if scrapers is not None else build_scrapers(config, self.resolver)
         self.filter = ListingFilter(config.criteria)
         self.deduplicator = Deduplicator(database)
-        self.notifier = notifier or build_notifier(config.telegram, config.email)
+        self.notifier = notifier or build_notifier(config.telegram, config.email, database)
         self.notifications = NotificationService(database, self.notifier, config.telegram)
         self._stop = threading.Event()
 

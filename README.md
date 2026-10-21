@@ -27,7 +27,8 @@ before. The SQLite database makes that memory survive restarts.
   a restart, not after a redeploy.
 - Sends a Telegram message and/or an email per new listing, or one grouped
   digest when a single cycle turns up many.
-- Answers `/start`, `/status` and `/stats` in the same chat.
+- Lets anyone subscribe: `/start` in the bot subscribes a chat, `/stop`
+  unsubscribes; `/status` and `/stats` show the monitor's health.
 
 ### What it deliberately does *not* do
 
@@ -58,7 +59,7 @@ monitor/
 │   └── notification/    message formatting + Telegram delivery
 ├── database/            SQLite schema and repository
 ├── scheduler/           the monitoring cycle and the loop
-└── telegram/            /start, /status, /stats command bot
+└── telegram/            /start, /stop, /status, /stats command bot
 ```
 
 The dependency direction is one-way: scrapers know nothing about SQLite or
@@ -129,7 +130,10 @@ every five minutes, not dozens of requests a second.
 
 ## 4. Notification channels
 
-Telegram and email are independent: configure either, or both. Every configured
+Telegram is the main channel: every chat that sent `/start` to the bot gets
+every new listing. Email is optional and off in `.env.example`
+(`EMAIL_ENABLED=false`). Telegram and email are independent: configure either,
+or both. Every configured
 channel receives every notification, and a listing counts as delivered as soon
 as one channel accepts it — a misconfigured second channel never causes endless
 re-sending. With no channel configured the service still runs and writes the
@@ -167,7 +171,16 @@ in any client.
 3. BotFather replies with a token like `123456789:AAF...`. That is
    `TELEGRAM_BOT_TOKEN`. Keep it secret — anyone holding it controls the bot.
 
-### Finding your chat ID
+That token is all the bot needs. Start the service, open your bot in Telegram
+and send `/start`: you are subscribed. Share the bot's username with anyone else
+who should get the listings — they send `/start` too. `/stop` unsubscribes, and
+a chat that blocks the bot is unsubscribed automatically.
+
+### Finding your chat ID (optional)
+
+`TELEGRAM_CHAT_ID` is only a convenience: that chat is subscribed automatically
+on the first start, so you get notifications without sending `/start`. If it
+later sends `/stop`, a restart does not resubscribe it.
 
 Send your new bot any message first (a bot cannot start a conversation), then:
 
@@ -179,20 +192,22 @@ Look for `"chat": {"id": 123456789, ...}` — that number is `TELEGRAM_CHAT_ID`.
 For a group, add the bot to the group, post a message there, and use the group's
 negative id (e.g. `-1001234567890`).
 
-The bot only answers the configured chat; commands from anywhere else are
-ignored and logged.
+The bot answers everyone. `/status` and `/stats` show only aggregate counts,
+never who is subscribed. Subscribers are stored in the `subscribers` table of
+the SQLite database.
 
 ---
 
 ## 6. Environment variables
 
-Copy `.env.example` to `.env` and fill it in. Everything except the two Telegram
-secrets has a working default.
+Copy `.env.example` to `.env` and fill it in. Everything except the Telegram
+bot token has a working default. Quote values that contain spaces
+(`NEIGHBORHOODS="Recoleta,Barrio Norte"`) so the file can be sourced by a shell.
 
 | Variable | Default | Meaning |
 |---|---|---|
 | `TELEGRAM_BOT_TOKEN` | — | Bot token from BotFather. |
-| `TELEGRAM_CHAT_ID` | — | Chat that receives notifications and may issue commands. |
+| `TELEGRAM_CHAT_ID` | — | Optional. Chat subscribed automatically on the first start. |
 | `EMAIL_TO` | — | Comma-separated recipients. Enables the email channel. |
 | `SMTP_HOST` / `SMTP_PORT` | `smtp.gmail.com` / `587` | SMTP server. Port `465` implies implicit TLS. |
 | `SMTP_USER` / `SMTP_PASSWORD` | — | SMTP login. For Gmail, an App Password. |
@@ -231,7 +246,7 @@ Secrets are read from the environment only; nothing is hardcoded.
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
-cp .env.example .env          # then fill in the Telegram values
+cp .env.example .env          # then fill in TELEGRAM_BOT_TOKEN
 
 # one cycle, then exit - the quickest way to see whether the scrapers work
 set -a && . ./.env && set +a
@@ -247,7 +262,7 @@ command poller). Stop with `Ctrl-C`; shutdown is graceful.
 ### With Docker
 
 ```bash
-cp .env.example .env          # fill in the Telegram values
+cp .env.example .env          # fill in TELEGRAM_BOT_TOKEN
 docker compose up -d
 docker compose logs -f
 ```
@@ -314,10 +329,10 @@ explanation, rather than silently matching nothing.
 **Nothing arrives at all.** The first log line after startup lists the active
 notification channels; if it warns that none is configured, the credentials are
 missing and messages are only being logged. For Telegram, send `/status` to the
-bot — silence means a wrong token or chat id. For email, a wrong Gmail password
-shows up as `email delivery failed ... 535`, which means you used the account
-password instead of an App Password. Remember that a fresh database stays quiet
-on its first cycle by design.
+bot — silence means a wrong token or the service is not running. For email, a
+wrong Gmail password shows up as `email delivery failed ... 535`, which means you
+used the account password instead of an App Password. Remember that a fresh
+database stays quiet on its first cycle by design.
 
 **A source says `blocked`.** ArgenProp's WAF returns `202` with an empty body
 when polled too hard; the source backs itself off automatically. If it persists,

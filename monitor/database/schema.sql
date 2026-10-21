@@ -65,3 +65,12 @@ CREATE TABLE IF NOT EXISTS app_state (
     key   TEXT PRIMARY KEY,
     value TEXT
 );
+
+-- Telegram chats that sent /start. `active` drops to 0 on /stop or when the
+-- user blocks the bot; the row is kept so a later /start just reactivates it.
+CREATE TABLE IF NOT EXISTS subscribers (
+    chat_id        TEXT PRIMARY KEY,
+    username       TEXT,
+    subscribed_at  TEXT    NOT NULL,
+    active         INTEGER NOT NULL DEFAULT 1
+);

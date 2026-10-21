@@ -396,3 +396,57 @@ class Database:
                 (key, value),
             )
             self._conn.commit()
+
+    # ------------------------------------------------------------------ subscribers
+
+    def add_subscriber(
+        self, chat_id: str, username: Optional[str] = None, reactivate: bool = True
+    ) -> bool:
+        """Subscribe a chat. Returns True when it was not already active.
+
+        With ``reactivate=False`` a chat that unsubscribed stays unsubscribed;
+        that is what the startup seeding from TELEGRAM_CHAT_ID wants.
+        """
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT active FROM subscribers WHERE chat_id = ?", (chat_id,)
+            ).fetchone()
+            if row is None:
+                self._conn.execute(
+                    "INSERT INTO subscribers (chat_id, username, subscribed_at, active) "
+                    "VALUES (?, ?, ?, 1)",
+                    (chat_id, username, to_iso(utcnow())),
+                )
+            elif row["active"] or not reactivate:
+                return False
+            else:
+                self._conn.execute(
+                    "UPDATE subscribers SET active = 1, username = COALESCE(?, username), "
+                    "subscribed_at = ? WHERE chat_id = ?",
+                    (username, to_iso(utcnow()), chat_id),
+                )
+            self._conn.commit()
+            return True
+
+    def remove_subscriber(self, chat_id: str) -> bool:
+        """Unsubscribe a chat. Returns True when it was active."""
+        with self._lock:
+            cursor = self._conn.execute(
+                "UPDATE subscribers SET active = 0 WHERE chat_id = ? AND active = 1", (chat_id,)
+            )
+            self._conn.commit()
+            return cursor.rowcount > 0
+
+    def active_subscribers(self) -> List[str]:
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT chat_id FROM subscribers WHERE active = 1 ORDER BY subscribed_at"
+            ).fetchall()
+        return [row["chat_id"] for row in rows]
+
+    def count_subscribers(self) -> int:
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT COUNT(*) AS n FROM subscribers WHERE active = 1"
+            ).fetchone()
+        return int(row["n"])

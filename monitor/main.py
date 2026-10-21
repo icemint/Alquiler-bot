@@ -36,20 +36,23 @@ def main(argv: Optional[list] = None) -> int:
 
     setup_logging(config.log_level, config.log_format)
 
+    database = Database(config.database_path)
+    if config.telegram.chat_id:
+        # The owner's chat is subscribed once; a later /stop from it is respected.
+        database.add_subscriber(config.telegram.chat_id, reactivate=False)
+
     channels = []
     if config.telegram.enabled and config.telegram.configured:
-        channels.append("telegram")
+        channels.append(f"telegram -> {database.count_subscribers()} subscribers")
     if config.email.enabled and config.email.configured:
         channels.append("email -> {0}".format(", ".join(config.email.recipients)))
     if channels:
         logger.info("notification channels: %s", "; ".join(channels))
     else:
         logger.warning(
-            "no notification channel configured (TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID or "
-            "SMTP_HOST/EMAIL_TO): notifications will be written to the log instead"
+            "no notification channel configured (TELEGRAM_BOT_TOKEN or SMTP_HOST/EMAIL_TO): "
+            "notifications will be written to the log instead"
         )
-
-    database = Database(config.database_path)
     service = MonitorService(config, database)
 
     if not service.scrapers:
