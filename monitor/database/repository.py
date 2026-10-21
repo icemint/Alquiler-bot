@@ -26,7 +26,12 @@ SCHEMA_PATH = os.path.join(os.path.dirname(__file__), "schema.sql")
 # Columns added after the first release. CREATE TABLE IF NOT EXISTS leaves an
 # existing table alone, so older databases get them through ALTER TABLE.
 ADDED_COLUMNS = {
-    "listings": {"bedrooms": "INTEGER", "furnished": "INTEGER"},
+    "listings": {"bedrooms": "INTEGER", "furnished": "INTEGER", "city": "TEXT"},
+}
+# Run once, right after a column is added, to fill it for existing rows.
+BACKFILL = {
+    # Every listing stored before cities existed was in CABA.
+    ("listings", "city"): "UPDATE listings SET city = 'CABA' WHERE neighborhood IS NOT NULL",
 }
 
 
@@ -59,6 +64,7 @@ def _row_to_stored(row: sqlite3.Row) -> StoredListing:
         if row["property_type"]
         else PropertyType.OTHER,
         operation=Operation(row["operation"]) if row["operation"] else Operation.OTHER,
+        city=row["city"],
         neighborhood=row["neighborhood"],
         raw_neighborhood=row["raw_neighborhood"],
         address=row["address"],
@@ -111,6 +117,8 @@ class Database:
                 for name, kind in columns.items():
                     if name not in existing:
                         self._conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {kind}")
+                        if (table, name) in BACKFILL:
+                            self._conn.execute(BACKFILL[(table, name)])
             self._conn.commit()
 
     def close(self) -> None:
@@ -141,6 +149,7 @@ class Database:
             "title": listing.title,
             "property_type": listing.property_type.value if listing.property_type else None,
             "operation": listing.operation.value if listing.operation else None,
+            "city": listing.city,
             "neighborhood": listing.neighborhood,
             "raw_neighborhood": listing.raw_neighborhood,
             "address": listing.address,
@@ -183,6 +192,7 @@ class Database:
                            furnished = COALESCE(:furnished, furnished),
                            expensas = :expensas,
                            expensas_currency = :expensas_currency,
+                           city = COALESCE(:city, city),
                            neighborhood = COALESCE(:neighborhood, neighborhood),
                            price_is_approximate = :price_is_approximate,
                            matched = :matched,

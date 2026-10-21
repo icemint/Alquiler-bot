@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from monitor.models.listing import PropertyType
-from monitor.neighborhoods import NeighborhoodResolver
+from monitor.neighborhoods import KEY_SEPARATOR, NeighborhoodResolver, barrio_key, split_key
 
 DEFAULT_USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
@@ -98,7 +98,10 @@ class SearchCriteria:
     max_rent: float = 1_000_000.0
     min_area_m2: float = 50.0
     currency: str = "ARS"
-    neighborhoods: List[str] = field(default_factory=lambda: ["Recoleta", "Barrio Norte"])
+    # Cities searched, and barrios chosen within them as "City/Barrio" keys.
+    # A city with no barrio chosen is searched as a whole.
+    cities: List[str] = field(default_factory=lambda: ["CABA"])
+    neighborhoods: List[str] = field(default_factory=lambda: ["CABA/Recoleta", "CABA/Barrio Norte"])
     property_types: List[PropertyType] = field(
         default_factory=lambda: [PropertyType.DEPARTAMENTO, PropertyType.CASA, PropertyType.PH]
     )
@@ -111,12 +114,34 @@ class SearchCriteria:
     # that say so; "any": no filter.
     furnished: str = "any"
 
+    def __post_init__(self) -> None:
+        # A bare barrio name is a CABA barrio (searches stored before cities
+        # existed), and every chosen barrio's city is part of the search.
+        self.neighborhoods = [
+            barrio_key(location.city, location.neighborhood or "")
+            for location in map(split_key, self.neighborhoods)
+        ]
+        for key in self.neighborhoods:
+            if split_key(key).city not in self.cities:
+                self.cities.append(split_key(key).city)
+
+    def barrios_in(self, city: str) -> List[str]:
+        """The barrios chosen in ``city``; empty means the whole city."""
+        prefix = city + KEY_SEPARATOR
+        return [key[len(prefix) :] for key in self.neighborhoods if key.startswith(prefix)]
+
+    def describe_location(self) -> str:
+        return "; ".join(
+            "{0}: {1}".format(city, ", ".join(self.barrios_in(city)) or "all barrios")
+            for city in self.cities
+        )
+
     def describe(self) -> str:
         # Only the amount takes Argentine thousands separators - applying the
         # replacement to the whole sentence would also eat the list commas.
         price = f"{self.max_rent:,.0f}".replace(",", ".")
         types = "/".join(t.value for t in self.property_types)
-        hoods = ", ".join(self.neighborhoods)
+        hoods = self.describe_location()
         text = (
             f"alquiler | {types} | {hoods} | area >= {self.min_area_m2:g} m2 | "
             f"price <= {price} {self.currency} (expensas excluded)"
@@ -132,6 +157,7 @@ class SearchCriteria:
         return {
             "max_rent": self.max_rent,
             "min_area_m2": self.min_area_m2,
+            "cities": list(self.cities),
             "neighborhoods": list(self.neighborhoods),
             "property_types": [t.value for t in self.property_types],
             "bedrooms": list(self.bedrooms),
@@ -160,11 +186,25 @@ class SearchCriteria:
                 {b for b in data["bedrooms"] if isinstance(b, int) and 0 <= b <= BEDROOMS_OR_MORE}
             )
         furnished = data.get("furnished")
+        # Searches stored before cities existed hold bare CABA barrio names.
+        if "neighborhoods" in data or "cities" in data:
+            neighborhoods = [
+                barrio_key(location.city, location.neighborhood or "")
+                for location in map(split_key, data.get("neighborhoods") or [])
+            ]
+            cities = list(data.get("cities") or [])
+            for key in neighborhoods:
+                city = split_key(key).city
+                if city not in cities:
+                    cities.append(city)
+        else:
+            neighborhoods, cities = list(self.neighborhoods), list(self.cities)
         return SearchCriteria(
             max_rent=max_rent,
             min_area_m2=min_area,
             currency=self.currency,
-            neighborhoods=list(data.get("neighborhoods") or self.neighborhoods),
+            cities=cities or list(self.cities),
+            neighborhoods=neighborhoods if cities else list(self.neighborhoods),
             property_types=types or list(self.property_types),
             include_expensas_in_price=self.include_expensas_in_price,
             bedrooms=bedrooms,
@@ -176,11 +216,20 @@ class SearchCriteria:
         """The widest search covering every one given: what to ask the sites
         for, so each subscriber's own filter still sees all candidates."""
         first = searches[0]
-        neighborhoods: List[str] = []
+        cities: List[str] = []
         types: List[PropertyType] = []
         for search in searches:
-            neighborhoods.extend(n for n in search.neighborhoods if n not in neighborhoods)
+            cities.extend(c for c in search.cities if c not in cities)
             types.extend(t for t in search.property_types if t not in types)
+        # A city anyone searches as a whole is searched as a whole.
+        whole = {c for search in searches for c in search.cities if not search.barrios_in(c)}
+        neighborhoods: List[str] = []
+        for search in searches:
+            neighborhoods.extend(
+                key
+                for key in search.neighborhoods
+                if key not in neighborhoods and split_key(key).city not in whole
+            )
         # One subscriber without a bedroom filter makes the union unfiltered.
         bedrooms: List[int] = []
         if all(search.bedrooms for search in searches):
@@ -190,6 +239,7 @@ class SearchCriteria:
             max_rent=max(s.max_rent for s in searches),
             min_area_m2=min(s.min_area_m2 for s in searches),
             currency=first.currency,
+            cities=cities,
             neighborhoods=neighborhoods,
             property_types=types,
             include_expensas_in_price=first.include_expensas_in_price,
@@ -298,19 +348,38 @@ def load_config() -> Config:
     neighborhoods = _list("NEIGHBORHOODS", ["Recoleta", "Barrio Norte"])
     canonical: List[str] = []
     for name in neighborhoods:
-        resolved = resolver.from_label(name)
+        # "Córdoba/Nueva Córdoba", or a bare name that is a barrio of one city.
+        if KEY_SEPARATOR in name:
+            resolved = resolver.resolve_key(name)
+        else:
+            location = resolver.from_label(name)
+            resolved = (
+                barrio_key(location.city, location.neighborhood)
+                if location and location.neighborhood
+                else None
+            )
         if not resolved:
             raise ConfigError(
-                f"Neighborhood {name!r} is not in the neighborhood map. Add it to "
-                "NEIGHBORHOOD_MAP_FILE with the per-source slugs first."
+                f"Neighborhood {name!r} is not in the location map (or names barrios in "
+                "several cities: write it as City/Barrio). See monitor/data/locations.json."
             )
         if resolved not in canonical:
             canonical.append(resolved)
+    cities = _list("CITIES", [])
+    for city in cities:
+        if city not in resolver.cities():
+            raise ConfigError(
+                f"City {city!r} is not in the location map; known: {', '.join(resolver.cities())}"
+            )
+    for key in canonical:
+        if split_key(key).city not in cities:
+            cities.append(split_key(key).city)
 
     criteria = SearchCriteria(
         max_rent=_float("MAX_RENT", 1_000_000.0),
         min_area_m2=_float("MIN_AREA", 50.0),
         currency=_str("CURRENCY", "ARS").upper(),
+        cities=cities or ["CABA"],
         neighborhoods=canonical,
         property_types=_parse_property_types(
             _list("PROPERTY_TYPES", ["Departamento", "Casa", "PH"])
@@ -357,7 +426,11 @@ def load_config() -> Config:
             enabled="mercadolibre" in enabled_sources,
             max_pages=_int("MERCADOLIBRE_MAX_PAGES", 3),
             request_delay_seconds=_float("MERCADOLIBRE_REQUEST_DELAY", 2.0),
-            options={"mode": _str("MERCADOLIBRE_MODE", "html")},
+            options={
+                "mode": _str("MERCADOLIBRE_MODE", "html"),
+                # Pages of a whole city's "published today" search per type.
+                "city_max_pages": _int("MERCADOLIBRE_CITY_MAX_PAGES", 5),
+            },
         ),
         "argenprop": SourceConfig(
             name="argenprop",

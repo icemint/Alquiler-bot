@@ -20,6 +20,7 @@ class RejectReason(str, Enum):
     TEMPORARY_RENTAL = "temporary_rental"
     PROPERTY_TYPE = "property_type_not_allowed"
     NEIGHBORHOOD_UNKNOWN = "neighborhood_unknown"
+    CITY_NOT_ALLOWED = "city_not_allowed"
     NEIGHBORHOOD_NOT_ALLOWED = "neighborhood_not_allowed"
     PRICE_MISSING = "price_missing"
     PRICE_UNRELIABLE = "price_unreliable"
@@ -57,12 +58,18 @@ class ListingFilter:
         if listing.property_type not in criteria.property_types:
             return FilterDecision(False, RejectReason.PROPERTY_TYPE)
 
-        if not listing.neighborhood:
-            # Never fall back to substring matching on the address: the
-            # neighborhood must come from the site's structured field.
+        # Never fall back to substring matching on the address: city and
+        # barrio must come from the site's structured fields.
+        if not listing.city:
             return FilterDecision(False, RejectReason.NEIGHBORHOOD_UNKNOWN)
-        if listing.neighborhood not in criteria.neighborhoods:
-            return FilterDecision(False, RejectReason.NEIGHBORHOOD_NOT_ALLOWED)
+        if listing.city not in criteria.cities:
+            return FilterDecision(False, RejectReason.CITY_NOT_ALLOWED)
+        wanted = criteria.barrios_in(listing.city)
+        if wanted:
+            if not listing.neighborhood:
+                return FilterDecision(False, RejectReason.NEIGHBORHOOD_UNKNOWN)
+            if listing.neighborhood not in wanted:
+                return FilterDecision(False, RejectReason.NEIGHBORHOOD_NOT_ALLOWED)
 
         if listing.price is None:
             return FilterDecision(False, RejectReason.PRICE_MISSING)

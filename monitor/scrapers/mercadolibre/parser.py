@@ -146,7 +146,7 @@ def parse_search_page(
         location_node = card.select_one(".poly-component__location")
         location = normalize_spaces(location_node.get_text()) if location_node else None
         parts = [part.strip() for part in (location or "").split(",") if part.strip()]
-        neighborhood = resolver.from_location_path(SOURCE, parts)
+        location_found = resolver.from_location_path(SOURCE, parts)
         address = parts[0] if len(parts) > 1 else None
 
         listings.append(
@@ -157,7 +157,8 @@ def parse_search_page(
                 title=title,
                 property_type=property_type,
                 operation=operation,
-                neighborhood=neighborhood,
+                city=location_found.city if location_found else None,
+                neighborhood=location_found.neighborhood if location_found else None,
                 raw_neighborhood=location,
                 address=address,
                 price=amount,

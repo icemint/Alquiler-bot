@@ -21,7 +21,7 @@ from typing import Any, Dict, List
 
 from monitor.models.listing import Listing, PropertyType
 from monitor.scrapers.base import BaseScraper
-from monitor.scrapers.cabaprop.parser import BASE_URL, SOURCE, parse_search_response
+from monitor.scrapers.cabaprop.parser import BASE_URL, CITY, SOURCE, parse_search_response
 
 SEARCH_URL = f"{BASE_URL}/api/v1/properties/find-properties"
 OPERATION_RENT = 2
@@ -40,15 +40,17 @@ HEADERS = {
 class CabaPropScraper(BaseScraper):
     name = SOURCE
 
+    @property
+    def searches_caba(self) -> bool:
+        return CITY in self.criteria.cities
+
     def barrio_ids(self) -> List[int]:
+        """CabaProp ids of the chosen CABA barrios; empty for all of CABA."""
         ids: List[int] = []
-        for neighborhood in self.criteria.neighborhoods:
-            config = self.resolver.mapping.get(neighborhood, {})
-            source_ids = (config.get("ids") or {}).get(SOURCE) or []  # type: ignore[union-attr]
+        for barrio in self.criteria.barrios_in(CITY):
+            source_ids = self.resolver.ids(SOURCE, CITY, barrio)
             if not source_ids:
-                self.logger.warning(
-                    "no %s ids configured for neighborhood %s", SOURCE, neighborhood
-                )
+                self.logger.warning("no %s ids for %s/%s", SOURCE, CITY, barrio)
             ids.extend(int(identifier) for identifier in source_ids)
         return ids
 
@@ -71,9 +73,12 @@ class CabaPropScraper(BaseScraper):
         return f"{SEARCH_URL}?offset={page}&limit={limit}&orderBy=created_at&sort=desc"
 
     def collect(self) -> List[Listing]:
+        if not self.searches_caba:
+            return []  # CabaProp only lists CABA
         query = self.build_query()
-        if not query["barrios"]:
-            # Without barrio ids the request would cover all of CABA.
+        if self.criteria.barrios_in(CITY) and not query["barrios"]:
+            # Barrios were chosen but none is known here: an empty list would
+            # search all of CABA instead.
             return []
         listings: List[Listing] = []
         page_size = int(self.source_config.options.get("page_size", 30))

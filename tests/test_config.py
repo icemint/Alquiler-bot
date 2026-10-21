@@ -6,6 +6,7 @@ import pytest
 
 from monitor.config import ConfigError, load_config
 from monitor.models.listing import PropertyType
+from monitor.neighborhoods import Location
 
 ENV_KEYS = [
     "CONFIG_FILE",
@@ -36,7 +37,8 @@ def test_defaults_match_the_brief():
     assert config.criteria.max_rent == 1_000_000
     assert config.criteria.min_area_m2 == 50
     assert config.criteria.currency == "ARS"
-    assert config.criteria.neighborhoods == ["Recoleta", "Barrio Norte"]
+    assert config.criteria.cities == ["CABA"]
+    assert config.criteria.neighborhoods == ["CABA/Recoleta", "CABA/Barrio Norte"]
     assert config.criteria.property_types == [
         PropertyType.DEPARTAMENTO,
         PropertyType.CASA,
@@ -58,7 +60,7 @@ def test_environment_overrides_defaults(monkeypatch):
     assert config.criteria.min_area_m2 == 65
     assert config.check_interval_seconds == 600
     assert config.criteria.property_types == [PropertyType.DEPARTAMENTO, PropertyType.PH]
-    assert config.criteria.neighborhoods == ["Recoleta"]
+    assert config.criteria.neighborhoods == ["CABA/Recoleta"]
 
 
 def test_secrets_are_read_from_the_environment(monkeypatch):
@@ -89,7 +91,7 @@ def test_config_file_supplies_search_criteria(tmp_path, monkeypatch):
     config = load_config()
     assert config.criteria.max_rent == 850_000
     assert config.criteria.min_area_m2 == 55
-    assert config.criteria.neighborhoods == ["Barrio Norte"]
+    assert config.criteria.neighborhoods == ["CABA/Barrio Norte"]
 
 
 def test_environment_wins_over_the_config_file(tmp_path, monkeypatch):
@@ -101,10 +103,24 @@ def test_environment_wins_over_the_config_file(tmp_path, monkeypatch):
 
 
 def test_unknown_neighborhood_is_rejected_with_guidance(monkeypatch):
-    monkeypatch.setenv("NEIGHBORHOODS", "Villa Crespo")
+    monkeypatch.setenv("NEIGHBORHOODS", "Narnia")
     with pytest.raises(ConfigError) as error:
         load_config()
-    assert "neighborhood map" in str(error.value).lower()
+    assert "location map" in str(error.value).lower()
+
+
+def test_barrios_of_other_cities_and_whole_cities_can_be_configured(monkeypatch):
+    monkeypatch.setenv("NEIGHBORHOODS", "AMBA/Tigre,Villa Crespo")
+    monkeypatch.setenv("CITIES", "CABA,AMBA")
+    criteria = load_config().criteria
+    assert criteria.neighborhoods == ["AMBA/Tigre", "CABA/Villa Crespo"]
+    assert criteria.cities == ["CABA", "AMBA"]
+
+
+def test_an_unknown_city_is_rejected(monkeypatch):
+    monkeypatch.setenv("CITIES", "Atlantis")
+    with pytest.raises(ConfigError):
+        load_config()
 
 
 def test_unknown_property_type_is_rejected(monkeypatch):
@@ -130,13 +146,19 @@ def test_zonaprop_is_not_enabled_by_default():
 
 
 def test_custom_neighborhood_map_file(tmp_path, monkeypatch):
-    path = tmp_path / "hoods.json"
+    path = tmp_path / "locations.json"
     path.write_text(
         json.dumps(
             {
-                "Palermo Hollywood": {
-                    "aliases": ["palermo hollywood"],
-                    "slugs": {"argenprop": ["palermo-hollywood"]},
+                "cities": {
+                    "CABA": {
+                        "barrios": {
+                            "Palermo Hollywood": {
+                                "aliases": ["palermo hollywood"],
+                                "slugs": {"argenprop": ["palermo-hollywood"]},
+                            }
+                        }
+                    }
                 }
             }
         ),
@@ -145,8 +167,10 @@ def test_custom_neighborhood_map_file(tmp_path, monkeypatch):
     monkeypatch.setenv("NEIGHBORHOOD_MAP_FILE", str(path))
     monkeypatch.setenv("NEIGHBORHOODS", "Palermo Hollywood")
     config = load_config()
-    assert config.criteria.neighborhoods == ["Palermo Hollywood"]
-    assert config.resolver.from_slug("argenprop", "palermo-hollywood") == "Palermo Hollywood"
+    assert config.criteria.neighborhoods == ["CABA/Palermo Hollywood"]
+    assert config.resolver.from_slug("argenprop", "palermo-hollywood") == Location(
+        "CABA", "Palermo Hollywood"
+    )
 
 
 def test_criteria_description_is_human_readable():

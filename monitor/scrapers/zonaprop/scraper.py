@@ -29,6 +29,7 @@ from typing import List
 
 from monitor.models.listing import Listing, PropertyType
 from monitor.models.result import ScrapeResult, SourceStatus
+from monitor.neighborhoods import split_key
 from monitor.scrapers.base import BaseScraper, FetchError
 
 BASE_URL = "https://www.zonaprop.com.ar"
@@ -87,9 +88,9 @@ class ZonaPropScraper(BaseScraper):
 
         # strategy == "http": a direct fetch, which is expected to be blocked.
         slug = "recoleta"
-        for name in self.criteria.neighborhoods:
-            config = self.resolver.mapping.get(name, {})
-            slugs = (config.get("slugs") or {}).get(self.name) or []  # type: ignore[union-attr]
+        for key in self.criteria.neighborhoods:
+            location = split_key(key)
+            slugs = self.resolver.slugs(self.name, location.city, location.neighborhood)
             if slugs:
                 slug = slugs[0]
                 break

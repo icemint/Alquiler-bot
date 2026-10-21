@@ -56,7 +56,7 @@ def test_a_subscriber_without_settings_uses_the_default_search(database):
 def test_saved_settings_round_trip(database):
     subscribe(database, "1", neighborhoods=["Recoleta"], max_rent=600_000, property_types=["PH"])
     criteria = criteria_for(database, "1", DEFAULT)
-    assert criteria.neighborhoods == ["Recoleta"]
+    assert criteria.neighborhoods == ["CABA/Recoleta"]
     assert criteria.max_rent == 600_000
     assert criteria.property_types == [PropertyType.PH]
     assert criteria.min_area_m2 == DEFAULT.min_area_m2
@@ -74,7 +74,7 @@ def test_the_site_query_covers_every_subscriber(database):
         database, "2", neighborhoods=["Barrio Norte"], max_rent=900_000, property_types=["PH"]
     )
     scope = search_scope(database, DEFAULT)
-    assert scope.neighborhoods == ["Recoleta", "Barrio Norte"]
+    assert scope.neighborhoods == ["CABA/Recoleta", "CABA/Barrio Norte"]
     assert scope.max_rent == 900_000
     assert scope.min_area_m2 == 50
     assert set(scope.property_types) == set(DEFAULT.property_types)
@@ -88,7 +88,7 @@ def test_unsubscribed_chats_do_not_widen_the_query(database):
     subscribe(database, "1", neighborhoods=["Recoleta"])
     subscribe(database, "2", neighborhoods=["Barrio Norte"])
     database.remove_subscriber("2")
-    assert search_scope(database, DEFAULT).neighborhoods == ["Recoleta"]
+    assert search_scope(database, DEFAULT).neighborhoods == ["CABA/Recoleta"]
 
 
 # ---------------------------------------------------------------- delivery
@@ -175,7 +175,7 @@ def test_scrapers_are_asked_for_the_combined_search(database):
     scraper = FakeScraper("mercadolibre")
     build_service(database, scraper, FakeRecipientNotifier()).run_cycle()
     assert scraper.criteria.max_rent == 1_500_000
-    assert scraper.criteria.neighborhoods == ["Recoleta"]
+    assert scraper.criteria.neighborhoods == ["CABA/Recoleta"]
 
 
 def test_widening_a_search_does_not_flood_with_old_listings(database):
