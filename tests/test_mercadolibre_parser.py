@@ -48,8 +48,8 @@ def test_edge_cases_fixture(fixture_loader, resolver):
     assert desde.neighborhood == "Barrio Norte"
     assert desde.price_is_approximate is True
 
-    outside = by_id["MLA3333333333"]
-    assert outside.neighborhood is None  # Palermo is not in the map
+    elsewhere = by_id["MLA3333333333"]
+    assert (elsewhere.city, elsewhere.neighborhood) == ("CABA", "Palermo")
 
     temporary = by_id["MLA4444444444"]
     assert temporary.operation is Operation.ALQUILER_TEMPORAL
@@ -65,3 +65,34 @@ def test_extract_item_id_and_clean_url():
 
 def test_empty_page_returns_no_listings(resolver):
     assert parse_search_page("<html><body>nothing here</body></html>", resolver) == []
+
+
+def card_page(location):
+    return f"""<ol><li class="ui-search-layout__item">
+      <a class="poly-component__title" href="https://departamento.mercadolibre.com.ar/MLA-1-x">Depto</a>
+      <span class="poly-component__location">{location}</span>
+    </li></ol>"""
+
+
+def test_a_barrio_search_fills_in_the_barrio_a_card_leaves_out(resolver):
+    # The centre of Mendoza: the card names the province only.
+    [listing] = parse_search_page(card_page("Necochea 80, Mendoza"), resolver, "mendoza/mendoza")
+    assert (listing.city, listing.neighborhood) == ("Mendoza", "Ciudad de Mendoza")
+
+
+def test_what_the_card_says_wins_over_the_search(resolver):
+    [listing] = parse_search_page(
+        card_page("Calle 1, Godoy Cruz, Mendoza"), resolver, "mendoza/mendoza"
+    )
+    assert listing.neighborhood == "Godoy Cruz"
+    [listing] = parse_search_page(
+        card_page("Ayacucho 800, Recoleta, Capital Federal"), resolver, "mendoza/mendoza"
+    )
+    assert (listing.city, listing.neighborhood) == ("CABA", "Recoleta")
+
+
+def test_a_whole_city_search_fills_in_nothing(resolver):
+    [listing] = parse_search_page(
+        card_page("Calle 46 Al 525, La Plata, Bs.As. G.B.A. Sur"), resolver, "bsas-gba-sur/la-plata"
+    )
+    assert (listing.city, listing.neighborhood) == ("La Plata", None)

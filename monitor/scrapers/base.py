@@ -11,7 +11,7 @@ import logging
 import random
 import threading
 import time
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from urllib.parse import urlsplit
 
 import requests
@@ -89,16 +89,45 @@ class HttpClient:
         delay: Optional[float] = None,
         headers: Optional[Dict[str, str]] = None,
     ) -> str:
+        return self._request("GET", url, delay, headers)
+
+    def post_json(
+        self,
+        url: str,
+        payload: Any,
+        delay: Optional[float] = None,
+        headers: Optional[Dict[str, str]] = None,
+    ) -> str:
+        """POST a JSON body; same pacing, retries and block detection as get()."""
+        return self._request("POST", url, delay, headers, payload)
+
+    def _request(
+        self,
+        method: str,
+        url: str,
+        delay: Optional[float],
+        headers: Optional[Dict[str, str]],
+        payload: Any = None,
+    ) -> str:
         last_error: Optional[Exception] = None
         for attempt in range(1, self.max_retries + 1):
             self._respect_delay(url, self.default_delay if delay is None else delay)
             try:
-                response = self.session.get(
-                    url,
-                    timeout=(self.connect_timeout, self.read_timeout),
-                    headers=headers,
-                    allow_redirects=True,
-                )
+                if method == "POST":
+                    response = self.session.post(
+                        url,
+                        timeout=(self.connect_timeout, self.read_timeout),
+                        headers=headers,
+                        json=payload,
+                        allow_redirects=True,
+                    )
+                else:
+                    response = self.session.get(
+                        url,
+                        timeout=(self.connect_timeout, self.read_timeout),
+                        headers=headers,
+                        allow_redirects=True,
+                    )
             except requests.RequestException as exc:
                 last_error = FetchError(f"request failed: {exc}")
             else:
@@ -164,6 +193,9 @@ class BaseScraper(abc.ABC):
         http: HttpClient,
     ) -> None:
         self.config = config
+        # What to ask the site for. The scheduler replaces it every cycle
+        # with the union of all subscribers' searches.
+        self.criteria = config.criteria
         self.source_config = source_config
         self.resolver = resolver
         self.http = http

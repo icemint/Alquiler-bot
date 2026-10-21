@@ -20,6 +20,7 @@ SOURCE_LABELS = {
     "zonaprop": "ZonaProp",
     "argenprop": "ArgenProp",
     "mercadolibre": "MercadoLibre",
+    "cabaprop": "CabaProp",
 }
 
 
@@ -44,6 +45,15 @@ def format_area(area: Optional[float]) -> str:
     return f"{area:.1f} m²"
 
 
+def place(listing: Listing) -> str:
+    """Barrio and city, e.g. Recoleta, CABA; just the city when the barrio is unknown."""
+    return ", ".join(part for part in (listing.neighborhood, listing.city) if part) or "-"
+
+
+def _yes_no(value: bool) -> str:
+    return "yes" if value else "no"
+
+
 def format_listing(listing: Listing, detected_at: Optional[datetime] = None) -> str:
     """Single-listing notification, HTML formatted for Telegram."""
     lines = [
@@ -52,12 +62,16 @@ def format_listing(listing: Listing, detected_at: Optional[datetime] = None) -> 
         f"Source: {escape(source_label(listing.source))}",
         "",
         f"Type: {escape(listing.property_type.value)}",
-        "Neighborhood: {0}".format(escape(listing.neighborhood or "-")),
+        f"Neighborhood: {escape(place(listing))}",
         f"Price: {format_money(listing.price, listing.currency)}",
         f"Area: {format_area(listing.area_m2)}",
     ]
     if listing.rooms:
         lines.append(f"Ambientes: {listing.rooms}")
+    if listing.bedrooms is not None:
+        lines.append(f"Bedrooms: {listing.bedrooms}")
+    if listing.furnished is not None:
+        lines.append(f"Furnished: {_yes_no(listing.furnished)}")
     if listing.expensas:
         lines.append(
             "Expensas: {0}".format(
@@ -116,6 +130,8 @@ def format_group(items: Sequence[StoredListing], detected_at: Optional[datetime]
         ]
         if listing.rooms:
             details.append(f"{listing.rooms} amb.")
+        if listing.furnished:
+            details.append("furnished")
         if listing.expensas:
             details.append(
                 "expensas {0}".format(
@@ -126,7 +142,7 @@ def format_group(items: Sequence[StoredListing], detected_at: Optional[datetime]
             "{index}. <b>{type} · {hood}</b> — {details}".format(
                 index=index,
                 type=escape(listing.property_type.value),
-                hood=escape(listing.neighborhood or "-"),
+                hood=escape(place(listing)),
                 details=escape(" · ".join(details)),
             )
         )
@@ -145,12 +161,16 @@ def _plain_listing(listing: Listing, detected_at: Optional[datetime] = None) -> 
         f"Source: {source_label(listing.source)}",
         "",
         f"Type: {listing.property_type.value}",
-        f"Neighborhood: {listing.neighborhood or '-'}",
+        f"Neighborhood: {place(listing)}",
         f"Price: {format_money(listing.price, listing.currency)}",
         f"Area: {format_area(listing.area_m2)}",
     ]
     if listing.rooms:
         lines.append(f"Ambientes: {listing.rooms}")
+    if listing.bedrooms is not None:
+        lines.append(f"Bedrooms: {listing.bedrooms}")
+    if listing.furnished is not None:
+        lines.append(f"Furnished: {_yes_no(listing.furnished)}")
     if listing.expensas:
         lines.append(
             f"Expensas: {format_money(listing.expensas, listing.expensas_currency or 'ARS')}"
@@ -172,12 +192,16 @@ def _email_row(label: str, value: str) -> str:
 def _email_listing_card(listing: Listing) -> str:
     rows = [
         _email_row("Type", escape(listing.property_type.value)),
-        _email_row("Neighborhood", escape(listing.neighborhood or "-")),
+        _email_row("Neighborhood", escape(place(listing))),
         _email_row("Price", escape(format_money(listing.price, listing.currency))),
         _email_row("Area", escape(format_area(listing.area_m2))),
     ]
     if listing.rooms:
         rows.append(_email_row("Ambientes", str(listing.rooms)))
+    if listing.bedrooms is not None:
+        rows.append(_email_row("Bedrooms", str(listing.bedrooms)))
+    if listing.furnished is not None:
+        rows.append(_email_row("Furnished", _yes_no(listing.furnished)))
     if listing.expensas:
         rows.append(
             _email_row(
@@ -219,7 +243,9 @@ def build_listing_message(
     when = detected_at or utcnow()
     price = format_money(listing.price, listing.currency)
     subject = "{type} in {hood} - {price}".format(
-        type=listing.property_type.value, hood=listing.neighborhood or "CABA", price=price
+        type=listing.property_type.value,
+        hood=listing.neighborhood or listing.city or "-",
+        price=price,
     )
     return NotificationMessage(
         subject=subject,

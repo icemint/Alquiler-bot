@@ -125,6 +125,40 @@ def parse_rooms(text: Optional[str]) -> Optional[int]:
     return None
 
 
+def bedrooms_from_rooms(rooms: Optional[int]) -> Optional[int]:
+    """Dormitorios when a site only gives ambientes: every ambiente but the
+    living room, so a monoambiente has none. Only a fallback - a structured
+    bedroom count always wins."""
+    if not rooms:
+        return None
+    return max(rooms - 1, 0)
+
+
+# "no amoblado" contains "amoblado", so the negative forms are checked first.
+_UNFURNISHED_RE = re.compile(
+    r"\b(?:sin\s+muebles|sin\s+amoblar|sin\s+amueblar|no\s+(?:est[aá]\s+)?amoblad[oa]"
+    r"|no\s+(?:est[aá]\s+)?amueblad[oa]|desamoblad[oa]|unfurnished)\b"
+)
+# Semi-amoblado counts as furnished: there is furniture to live with.
+_FURNISHED_RE = re.compile(r"\b(?:amoblad[oa]s?|amueblad[oa]s?|con\s+muebles|furnished)\b")
+
+
+def parse_furnished(*texts: Optional[str]) -> Optional[bool]:
+    """Whether the title or description says the place is (un)furnished.
+
+    Sites rarely have a structured field for it, but an ad that says
+    "amoblado" means it. Silence stays None rather than "unfurnished".
+    """
+    text = " ".join(t for t in texts if t).lower()
+    if not text:
+        return None
+    if _UNFURNISHED_RE.search(text):
+        return False
+    if _FURNISHED_RE.search(text):
+        return True
+    return None
+
+
 def parse_property_type(text: Optional[str]) -> PropertyType:
     if not text:
         return PropertyType.OTHER

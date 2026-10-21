@@ -23,6 +23,17 @@ logger = logging.getLogger(__name__)
 
 SCHEMA_PATH = os.path.join(os.path.dirname(__file__), "schema.sql")
 
+# Columns added after the first release. CREATE TABLE IF NOT EXISTS leaves an
+# existing table alone, so older databases get them through ALTER TABLE.
+ADDED_COLUMNS = {
+    "listings": {"bedrooms": "INTEGER", "furnished": "INTEGER", "city": "TEXT"},
+}
+# Run once, right after a column is added, to fill it for existing rows.
+BACKFILL = {
+    # Every listing stored before cities existed was in CABA.
+    ("listings", "city"): "UPDATE listings SET city = 'CABA' WHERE neighborhood IS NOT NULL",
+}
+
 
 @dataclass
 class StoredListing:
@@ -53,6 +64,7 @@ def _row_to_stored(row: sqlite3.Row) -> StoredListing:
         if row["property_type"]
         else PropertyType.OTHER,
         operation=Operation(row["operation"]) if row["operation"] else Operation.OTHER,
+        city=row["city"],
         neighborhood=row["neighborhood"],
         raw_neighborhood=row["raw_neighborhood"],
         address=row["address"],
@@ -60,6 +72,8 @@ def _row_to_stored(row: sqlite3.Row) -> StoredListing:
         currency=row["currency"],
         area_m2=row["area_m2"],
         rooms=row["rooms"],
+        bedrooms=row["bedrooms"],
+        furnished=None if row["furnished"] is None else bool(row["furnished"]),
         expensas=row["expensas"],
         expensas_currency=row["expensas_currency"],
         published_at=from_iso(row["published_at"]),
@@ -96,6 +110,15 @@ class Database:
             self._conn.execute("PRAGMA journal_mode=WAL")
             self._conn.execute("PRAGMA foreign_keys=ON")
             self._conn.executescript(schema)
+            for table, columns in ADDED_COLUMNS.items():
+                existing = {
+                    row["name"] for row in self._conn.execute(f"PRAGMA table_info({table})")
+                }
+                for name, kind in columns.items():
+                    if name not in existing:
+                        self._conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {kind}")
+                        if (table, name) in BACKFILL:
+                            self._conn.execute(BACKFILL[(table, name)])
             self._conn.commit()
 
     def close(self) -> None:
@@ -126,6 +149,7 @@ class Database:
             "title": listing.title,
             "property_type": listing.property_type.value if listing.property_type else None,
             "operation": listing.operation.value if listing.operation else None,
+            "city": listing.city,
             "neighborhood": listing.neighborhood,
             "raw_neighborhood": listing.raw_neighborhood,
             "address": listing.address,
@@ -133,6 +157,8 @@ class Database:
             "currency": listing.currency,
             "area_m2": listing.area_m2,
             "rooms": listing.rooms,
+            "bedrooms": listing.bedrooms,
+            "furnished": None if listing.furnished is None else int(listing.furnished),
             "expensas": listing.expensas,
             "expensas_currency": listing.expensas_currency,
             "published_at": to_iso(listing.published_at),
@@ -162,8 +188,11 @@ class Database:
                            currency = :currency,
                            area_m2 = COALESCE(:area_m2, area_m2),
                            rooms = COALESCE(:rooms, rooms),
+                           bedrooms = COALESCE(:bedrooms, bedrooms),
+                           furnished = COALESCE(:furnished, furnished),
                            expensas = :expensas,
                            expensas_currency = :expensas_currency,
+                           city = COALESCE(:city, city),
                            neighborhood = COALESCE(:neighborhood, neighborhood),
                            price_is_approximate = :price_is_approximate,
                            matched = :matched,
@@ -240,6 +269,14 @@ class Database:
         with self._lock:
             row = self._conn.execute(query, params).fetchone()
         return int(row["n"])
+
+    def has_notified_listings(self, source: str) -> bool:
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT 1 FROM listings WHERE source = ? AND notified_at IS NOT NULL LIMIT 1",
+                (source,),
+            ).fetchone()
+        return row is not None
 
     def count_new_since(self, since: datetime, matched_only: bool = False) -> int:
         query = "SELECT COUNT(*) AS n FROM listings WHERE first_seen_at >= ?"
@@ -394,5 +431,109 @@ class Database:
                 "INSERT INTO app_state (key, value) VALUES (?, ?) "
                 "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
                 (key, value),
+            )
+            self._conn.commit()
+
+    # ------------------------------------------------------------------ subscribers
+
+    def add_subscriber(
+        self, chat_id: str, username: Optional[str] = None, reactivate: bool = True
+    ) -> bool:
+        """Subscribe a chat. Returns True when it was not already active.
+
+        With ``reactivate=False`` a chat that unsubscribed stays unsubscribed;
+        that is what the startup seeding from TELEGRAM_CHAT_ID wants.
+        """
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT active FROM subscribers WHERE chat_id = ?", (chat_id,)
+            ).fetchone()
+            if row is None:
+                self._conn.execute(
+                    "INSERT INTO subscribers (chat_id, username, subscribed_at, active) "
+                    "VALUES (?, ?, ?, 1)",
+                    (chat_id, username, to_iso(utcnow())),
+                )
+            elif row["active"] or not reactivate:
+                return False
+            else:
+                self._conn.execute(
+                    "UPDATE subscribers SET active = 1, username = COALESCE(?, username), "
+                    "subscribed_at = ? WHERE chat_id = ?",
+                    (username, to_iso(utcnow()), chat_id),
+                )
+            self._conn.commit()
+            return True
+
+    def remove_subscriber(self, chat_id: str) -> bool:
+        """Unsubscribe a chat. Returns True when it was active."""
+        with self._lock:
+            cursor = self._conn.execute(
+                "UPDATE subscribers SET active = 0 WHERE chat_id = ? AND active = 1", (chat_id,)
+            )
+            self._conn.commit()
+            return cursor.rowcount > 0
+
+    def active_subscribers(self) -> List[str]:
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT chat_id FROM subscribers WHERE active = 1 ORDER BY subscribed_at"
+            ).fetchall()
+        return [row["chat_id"] for row in rows]
+
+    def count_subscribers(self) -> int:
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT COUNT(*) AS n FROM subscribers WHERE active = 1"
+            ).fetchone()
+        return int(row["n"])
+
+    # ------------------------------------------------------------------ searches
+
+    def get_criteria(self, chat_id: str) -> Optional[Dict[str, Any]]:
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT criteria FROM subscriber_criteria WHERE chat_id = ?", (chat_id,)
+            ).fetchone()
+        if row is None:
+            return None
+        try:
+            data = json.loads(row["criteria"])
+        except ValueError:
+            return None
+        return data if isinstance(data, dict) else None
+
+    def set_criteria(self, chat_id: str, criteria: Dict[str, Any]) -> None:
+        with self._lock:
+            self._conn.execute(
+                "INSERT INTO subscriber_criteria (chat_id, criteria, updated_at) VALUES (?, ?, ?) "
+                "ON CONFLICT(chat_id) DO UPDATE SET criteria = excluded.criteria, "
+                "updated_at = excluded.updated_at",
+                (chat_id, json.dumps(criteria, ensure_ascii=False), to_iso(utcnow())),
+            )
+            self._conn.commit()
+
+    # ------------------------------------------------------------------ deliveries
+
+    def delivered_keys(self, chat_id: str, dedupe_keys: List[str]) -> List[str]:
+        if not dedupe_keys:
+            return []
+        placeholders = ",".join("?" for _ in dedupe_keys)
+        with self._lock:
+            rows = self._conn.execute(
+                f"SELECT dedupe_key FROM deliveries WHERE chat_id = ? "
+                f"AND dedupe_key IN ({placeholders})",
+                (chat_id, *dedupe_keys),
+            ).fetchall()
+        return [row["dedupe_key"] for row in rows]
+
+    def record_deliveries(self, chat_id: str, dedupe_keys: List[str]) -> None:
+        if not dedupe_keys:
+            return
+        timestamp = to_iso(utcnow())
+        with self._lock:
+            self._conn.executemany(
+                "INSERT OR IGNORE INTO deliveries (chat_id, dedupe_key, sent_at) VALUES (?, ?, ?)",
+                [(chat_id, key, timestamp) for key in dedupe_keys],
             )
             self._conn.commit()

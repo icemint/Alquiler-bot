@@ -19,8 +19,10 @@ from bs4 import BeautifulSoup
 from monitor.models.listing import Listing, Operation, PropertyType
 from monitor.neighborhoods import NeighborhoodResolver
 from monitor.scrapers.parsing import (
+    bedrooms_from_rooms,
     normalize_spaces,
     parse_area,
+    parse_furnished,
     parse_number,
     parse_operation,
     parse_price,
@@ -98,10 +100,14 @@ def parse_search_page(
 ) -> List[Listing]:
     """Turn one search results page into normalized listings.
 
-    ``requested_neighborhood`` is only recorded for troubleshooting: the
-    neighborhood is always taken from the card's own location field, never
-    from the search we happened to run.
+    ``requested_neighborhood`` is the location path searched. The location is
+    taken from the card's own location field; the search only fills in a
+    barrio the card leaves out. Some cards name nothing below the city (the
+    centre of Mendoza reads "Necochea 80, Mendoza"), and a barrio search
+    returns only that barrio, so such a card is in the barrio searched. A card
+    naming another city or barrio keeps what it says.
     """
+    searched = resolver.from_slug(SOURCE, requested_neighborhood)
     soup = BeautifulSoup(html, "html.parser")
     listings: List[Listing] = []
 
@@ -144,7 +150,15 @@ def parse_search_page(
         location_node = card.select_one(".poly-component__location")
         location = normalize_spaces(location_node.get_text()) if location_node else None
         parts = [part.strip() for part in (location or "").split(",") if part.strip()]
-        neighborhood = resolver.from_location_path(SOURCE, parts)
+        location_found = resolver.from_location_path(SOURCE, parts)
+        if (
+            searched
+            and searched.neighborhood
+            and location_found
+            and location_found.city == searched.city
+            and not location_found.neighborhood
+        ):
+            location_found = searched
         address = parts[0] if len(parts) > 1 else None
 
         listings.append(
@@ -155,13 +169,17 @@ def parse_search_page(
                 title=title,
                 property_type=property_type,
                 operation=operation,
-                neighborhood=neighborhood,
+                city=location_found.city if location_found else None,
+                neighborhood=location_found.neighborhood if location_found else None,
                 raw_neighborhood=location,
                 address=address,
                 price=amount,
                 currency=currency,
                 area_m2=area,
                 rooms=rooms,
+                # Search cards show ambientes only.
+                bedrooms=bedrooms_from_rooms(rooms),
+                furnished=parse_furnished(title),
                 expensas=None,
                 published_at=None,
                 price_is_approximate=approximate,

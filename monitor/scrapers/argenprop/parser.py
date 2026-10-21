@@ -19,8 +19,10 @@ from bs4 import BeautifulSoup
 from monitor.models.listing import Listing, Operation, PropertyType
 from monitor.neighborhoods import NeighborhoodResolver
 from monitor.scrapers.parsing import (
+    bedrooms_from_rooms,
     normalize_spaces,
     parse_area,
+    parse_furnished,
     parse_number,
     parse_operation,
     parse_price,
@@ -84,12 +86,22 @@ def parse_search_page(
         address_node = card.select_one(".card__address")
         address_text = normalize_spaces(address_node.get_text(" ")) if address_node else None
         address_parts = [p.strip() for p in (address_text or "").split(",") if p.strip()]
-        # idbarrio is ArgenProp's own classification and wins: the card may
-        # print a sub-barrio ("Parque Las Heras") for a listing filed under
-        # Barrio Norte. The rendered label is the fallback.
-        neighborhood = resolver.from_id(
-            SOURCE, card.get("idbarrio")
-        ) or resolver.from_location_path(SOURCE, address_parts[-1:])
+        # ArgenProp's own ids win: the card may print a sub-barrio ("Parque
+        # Las Heras") for a listing filed under Barrio Norte. The rendered
+        # barrio label is the fallback, within the city the ids gave.
+        location = resolver.from_ids(
+            SOURCE,
+            [
+                f"barrio:{card.get('idbarrio')}" if card.get("idbarrio") else None,
+                f"partido:{card.get('idpartido')}" if card.get("idpartido") else None,
+                f"localidad:{card.get('idlocalidad')}" if card.get("idlocalidad") else None,
+            ],
+        )
+        label = address_parts[-1] if address_parts else None
+        if location is None:
+            location = resolver.from_location_path(SOURCE, [label] if label else [])
+        elif location.neighborhood is None:
+            location = resolver.from_label(label, location.city) or location
         street = ", ".join(address_parts[:-1]) if len(address_parts) > 1 else address_text
 
         currency_from_id = CURRENCY_BY_ID.get((card.get("idmoneda") or "").strip())
@@ -143,6 +155,12 @@ def parse_search_page(
             area = covered_area
         if rooms is None:
             rooms = parse_rooms(card.get("ambientes") or "")
+        dormitorios = (card.get("dormitorios") or "").strip()
+        bedrooms = int(dormitorios) if dormitorios.isdigit() else bedrooms_from_rooms(rooms)
+        info_node = card.select_one(".card__info")
+        furnished = parse_furnished(
+            title, normalize_spaces(info_node.get_text(" ")) if info_node else None
+        )
 
         listings.append(
             Listing(
@@ -152,13 +170,16 @@ def parse_search_page(
                 title=title,
                 property_type=property_type,
                 operation=operation,
-                neighborhood=neighborhood,
-                raw_neighborhood=address_parts[-1] if address_parts else None,
+                city=location.city if location else None,
+                neighborhood=location.neighborhood if location else None,
+                raw_neighborhood=label,
                 address=street,
                 price=price,
                 currency=currency,
                 area_m2=area,
                 rooms=rooms,
+                bedrooms=bedrooms,
+                furnished=furnished,
                 expensas=expensas,
                 expensas_currency=expensas_currency,
                 published_at=None,

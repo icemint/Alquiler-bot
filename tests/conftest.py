@@ -52,6 +52,7 @@ def make_listing(**overrides):
         "title": "Depto Recoleta",
         "property_type": PropertyType.DEPARTAMENTO,
         "operation": Operation.ALQUILER,
+        "city": "CABA",
         "neighborhood": "Recoleta",
         "address": "Junin 1200",
         "price": 800_000.0,

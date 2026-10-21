@@ -178,8 +178,8 @@ def test_email_only_configuration_builds_an_email_notifier(email_config):
     assert isinstance(notifier, EmailNotifier)
 
 
-def test_both_channels_configured_builds_a_composite(email_config):
-    notifier = build_notifier(TelegramConfig(bot_token="t", chat_id="1"), email_config)
+def test_both_channels_configured_builds_a_composite(email_config, database):
+    notifier = build_notifier(TelegramConfig(bot_token="t"), email_config, database)
     assert isinstance(notifier, CompositeNotifier)
     assert {channel.name for channel in notifier.notifiers} == {"telegram", "email"}
 

@@ -1,0 +1,3271 @@
+{
+ "cities": {
+  "CABA": {
+   "aliases": [
+    "Capital Federal",
+    "Ciudad Autónoma de Buenos Aires"
+   ],
+   "slugs": {
+    "mercadolibre": [
+     "capital-federal"
+    ],
+    "argenprop": [
+     "capital-federal"
+    ]
+   },
+   "ids": {
+    "argenprop": [
+     "localidad:2102"
+    ]
+   },
+   "barrios": {
+    "Agronomía": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/agronomia"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "2"
+      ]
+     }
+    },
+    "Almagro": {
+     "aliases": [
+      "Almagro Norte",
+      "Almagro Sur"
+     ],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/almagro"
+      ],
+      "argenprop": [
+       "almagro"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "3",
+       "4",
+       "5"
+      ]
+     }
+    },
+    "Balvanera": {
+     "aliases": [
+      "Once",
+      "Congreso",
+      "Abasto",
+      "Balvanera Congreso",
+      "Balvanera Once"
+     ],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/balvanera",
+       "capital-federal/congreso",
+       "capital-federal/once"
+      ],
+      "argenprop": [
+       "balvanera"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "1",
+       "6",
+       "7",
+       "8"
+      ]
+     }
+    },
+    "Barracas": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/barracas"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "9"
+      ]
+     }
+    },
+    "Barrio Norte": {
+     "aliases": [
+      "B Norte",
+      "Bo Norte",
+      "Barrio Norte La Isla",
+      "La Isla",
+      "Barrio Norte Parque Las Heras",
+      "Parque Las Heras",
+      "Barrio Norte Recoleta"
+     ],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/barrio-norte"
+      ],
+      "argenprop": [
+       "barrio-norte"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "10",
+       "11",
+       "12",
+       "13"
+      ],
+      "argenprop": [
+       "barrio:4"
+      ]
+     }
+    },
+    "Belgrano": {
+     "aliases": [
+      "Belgrano Barrancas",
+      "Barrancas de Belgrano",
+      "Belgrano C",
+      "Belgrano Chico",
+      "Belgrano R",
+      "Belgrano La Imprenta",
+      "La Imprenta"
+     ],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/belgrano",
+       "capital-federal/belgrano-barrancas",
+       "capital-federal/belgrano-c",
+       "capital-federal/belgrano-chico",
+       "capital-federal/belgrano-r"
+      ],
+      "argenprop": [
+       "belgrano"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "14",
+       "15",
+       "16",
+       "17",
+       "18"
+      ]
+     }
+    },
+    "Boedo": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/boedo"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "19"
+      ]
+     }
+    },
+    "Caballito": {
+     "aliases": [
+      "Caballito Barrio Inglés",
+      "Caballito Cid Campeador",
+      "Cid Campeador",
+      "Caballito Norte",
+      "Caballito Parque Rivadavia",
+      "Parque Rivadavia",
+      "Caballito Primera Junta",
+      "Primera Junta",
+      "Caballito Sur",
+      "Parque Centenario"
+     ],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/caballito"
+      ],
+      "argenprop": [
+       "caballito"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "20",
+       "21",
+       "22",
+       "23",
+       "24",
+       "25",
+       "26",
+       "58",
+       "63"
+      ],
+      "argenprop": [
+       "barrio:8"
+      ]
+     }
+    },
+    "Chacarita": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/chacarita"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "27"
+      ]
+     }
+    },
+    "Coghlan": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/coghlan"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "28"
+      ]
+     }
+    },
+    "Colegiales": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/colegiales"
+      ],
+      "argenprop": [
+       "colegiales"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "29"
+      ]
+     }
+    },
+    "Constitución": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/constitucion"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "30"
+      ]
+     }
+    },
+    "Flores": {
+     "aliases": [
+      "Flores Norte",
+      "Flores Sur"
+     ],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/flores"
+      ],
+      "argenprop": [
+       "flores"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "31",
+       "32",
+       "33"
+      ]
+     }
+    },
+    "Floresta": {
+     "aliases": [
+      "Floresta Norte",
+      "Floresta Sur"
+     ],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/floresta"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "34",
+       "35",
+       "36"
+      ]
+     }
+    },
+    "La Boca": {
+     "aliases": [
+      "Boca"
+     ],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/la-boca"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "37"
+      ]
+     }
+    },
+    "La Paternal": {
+     "aliases": [
+      "Paternal"
+     ],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/paternal"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "38"
+      ]
+     }
+    },
+    "Liniers": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/liniers"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "39"
+      ],
+      "argenprop": [
+       "barrio:16"
+      ]
+     }
+    },
+    "Mataderos": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/mataderos"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "40"
+      ]
+     }
+    },
+    "Monserrat": {
+     "aliases": [
+      "Montserrat"
+     ],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/monserrat"
+      ],
+      "argenprop": [
+       "monserrat"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "42"
+      ],
+      "argenprop": [
+       "barrio:12641"
+      ]
+     }
+    },
+    "Monte Castro": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/monte-castro"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "43"
+      ]
+     }
+    },
+    "Nueva Pompeya": {
+     "aliases": [
+      "Pompeya"
+     ],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/nueva-pompeya"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "62"
+      ]
+     }
+    },
+    "Núñez": {
+     "aliases": [
+      "Nuñez Lomas",
+      "Nuñez River"
+     ],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/nunez"
+      ],
+      "argenprop": [
+       "nunez"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "44",
+       "45",
+       "46"
+      ]
+     }
+    },
+    "Palermo": {
+     "aliases": [
+      "Palermo Chico",
+      "Palermo Hollywood",
+      "Palermo Nuevo",
+      "Palermo Soho",
+      "Palermo Viejo",
+      "Botánico",
+      "Palermo Botánico",
+      "Las Cañitas",
+      "Palermo Las Cañitas",
+      "Palermo Boulevard",
+      "Palermo Pacífico",
+      "Palermo Plaza Italia"
+     ],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/botanico",
+       "capital-federal/las-canitas",
+       "capital-federal/palermo",
+       "capital-federal/palermo-chico",
+       "capital-federal/palermo-hollywood",
+       "capital-federal/palermo-nuevo",
+       "capital-federal/palermo-soho",
+       "capital-federal/palermo-viejo"
+      ],
+      "argenprop": [
+       "palermo"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "47",
+       "48",
+       "49",
+       "50",
+       "51",
+       "52",
+       "53",
+       "54",
+       "55",
+       "56"
+      ],
+      "argenprop": [
+       "barrio:20"
+      ]
+     }
+    },
+    "Parque Avellaneda": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/parque-avellaneda"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "57"
+      ]
+     }
+    },
+    "Parque Chacabuco": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/parque-chacabuco"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "59"
+      ]
+     }
+    },
+    "Parque Chas": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/parque-chas"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "60"
+      ]
+     }
+    },
+    "Parque Patricios": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/parque-patricios"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "61"
+      ]
+     }
+    },
+    "Puerto Madero": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/puerto-madero"
+      ],
+      "argenprop": [
+       "puerto-madero"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "64"
+      ]
+     }
+    },
+    "Recoleta": {
+     "aliases": [
+      "Barrio Recoleta",
+      "Recoleta CABA"
+     ],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/recoleta"
+      ],
+      "argenprop": [
+       "recoleta"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "88"
+      ],
+      "argenprop": [
+       "barrio:12618"
+      ]
+     }
+    },
+    "Retiro": {
+     "aliases": [
+      "Retiro Catalinas",
+      "Catalinas",
+      "Retiro Plaza San Martín"
+     ],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/retiro"
+      ],
+      "argenprop": [
+       "retiro"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "65",
+       "66",
+       "67"
+      ],
+      "argenprop": [
+       "barrio:12645"
+      ]
+     }
+    },
+    "Saavedra": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/saavedra"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "68"
+      ]
+     }
+    },
+    "San Cristóbal": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/san-cristobal"
+      ],
+      "argenprop": [
+       "san-cristobal"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "69"
+      ]
+     }
+    },
+    "San Nicolás": {
+     "aliases": [
+      "Microcentro / Centro",
+      "Microcentro",
+      "Centro",
+      "San Nicolás Tribunales",
+      "Tribunales"
+     ],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/san-nicolas"
+      ],
+      "argenprop": [
+       "san-nicolas"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "41",
+       "70",
+       "71"
+      ]
+     }
+    },
+    "San Telmo": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/san-telmo"
+      ],
+      "argenprop": [
+       "san-telmo"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "72"
+      ]
+     }
+    },
+    "Vélez Sarsfield": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/velez-sarsfield"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "73"
+      ]
+     }
+    },
+    "Versalles": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/versalles"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "74"
+      ]
+     }
+    },
+    "Villa Crespo": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/villa-crespo"
+      ],
+      "argenprop": [
+       "villa-crespo"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "75"
+      ]
+     }
+    },
+    "Villa del Parque": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/villa-del-parque"
+      ],
+      "argenprop": [
+       "villa-del-parque"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "76"
+      ]
+     }
+    },
+    "Villa Devoto": {
+     "aliases": [
+      "Devoto"
+     ],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/villa-devoto"
+      ],
+      "argenprop": [
+       "villa-devoto"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "77"
+      ]
+     }
+    },
+    "Villa General Mitre": {
+     "aliases": [
+      "Villa Gral. Mitre"
+     ],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/villa-gral-mitre"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "78"
+      ]
+     }
+    },
+    "Villa Lugano": {
+     "aliases": [
+      "Lugano"
+     ],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/villa-lugano"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "79"
+      ]
+     }
+    },
+    "Villa Luro": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/villa-luro"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "80"
+      ]
+     }
+    },
+    "Villa Ortúzar": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/villa-ortuzar"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "81"
+      ]
+     }
+    },
+    "Villa Pueyrredón": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/villa-pueyrredon"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "82"
+      ]
+     }
+    },
+    "Villa Real": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/villa-real"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "83"
+      ]
+     }
+    },
+    "Villa Riachuelo": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/villa-riachuelo"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "84"
+      ]
+     }
+    },
+    "Villa Santa Rita": {
+     "aliases": [
+      "Santa Rita"
+     ],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/santa-rita"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "85"
+      ]
+     }
+    },
+    "Villa Soldati": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/villa-soldati"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "86"
+      ]
+     }
+    },
+    "Villa Urquiza": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "capital-federal/villa-urquiza"
+      ],
+      "argenprop": [
+       "villa-urquiza"
+      ]
+     },
+     "ids": {
+      "cabaprop": [
+       "87"
+      ]
+     }
+    }
+   }
+  },
+  "AMBA": {
+   "aliases": [
+    "Bs.As. G.B.A. Norte",
+    "Bs.As. G.B.A. Sur",
+    "Bs.As. G.B.A. Oeste",
+    "GBA",
+    "Gran Buenos Aires"
+   ],
+   "slugs": {
+    "mercadolibre": [
+     "bsas-gba-norte",
+     "bsas-gba-sur",
+     "bsas-gba-oeste"
+    ],
+    "argenprop": []
+   },
+   "ids": {
+    "argenprop": []
+   },
+   "barrios": {
+    "Almirante Brown": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-sur/almirante-brown"
+      ]
+     },
+     "ids": {}
+    },
+    "Avellaneda": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-sur/avellaneda"
+      ]
+     },
+     "ids": {}
+    },
+    "Berazategui": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-sur/berazategui"
+      ]
+     },
+     "ids": {}
+    },
+    "Escobar": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-norte/escobar"
+      ]
+     },
+     "ids": {}
+    },
+    "Esteban Echeverría": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-sur/esteban-echeverria"
+      ]
+     },
+     "ids": {}
+    },
+    "Ezeiza": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-sur/ezeiza"
+      ]
+     },
+     "ids": {}
+    },
+    "Florencio Varela": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-sur/florencio-varela"
+      ]
+     },
+     "ids": {}
+    },
+    "General Rodríguez": {
+     "aliases": [
+      "Gral. Rodríguez"
+     ],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-oeste/general-rodriguez"
+      ]
+     },
+     "ids": {}
+    },
+    "General San Martín": {
+     "aliases": [
+      "San Martín",
+      "Gral. San Martín"
+     ],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-norte/general-san-martin"
+      ]
+     },
+     "ids": {}
+    },
+    "Hurlingham": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-oeste/hurlingham"
+      ]
+     },
+     "ids": {}
+    },
+    "Ituzaingó": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-oeste/ituzaingo"
+      ]
+     },
+     "ids": {}
+    },
+    "José C. Paz": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-norte/jose-c-paz"
+      ]
+     },
+     "ids": {}
+    },
+    "La Matanza": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-oeste/la-matanza"
+      ]
+     },
+     "ids": {}
+    },
+    "Lanús": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-sur/lanus"
+      ]
+     },
+     "ids": {}
+    },
+    "Lomas de Zamora": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-sur/lomas-de-zamora"
+      ]
+     },
+     "ids": {}
+    },
+    "Malvinas Argentinas": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-norte/malvinas-argentinas"
+      ]
+     },
+     "ids": {}
+    },
+    "Merlo": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-oeste/merlo"
+      ]
+     },
+     "ids": {}
+    },
+    "Moreno": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-oeste/moreno"
+      ]
+     },
+     "ids": {}
+    },
+    "Morón": {
+     "aliases": [
+      "Castelar"
+     ],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-oeste/castelar",
+       "bsas-gba-oeste/moron"
+      ]
+     },
+     "ids": {}
+    },
+    "Pilar": {
+     "aliases": [
+      "Del Viso"
+     ],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-norte/del-viso",
+       "bsas-gba-norte/pilar"
+      ]
+     },
+     "ids": {}
+    },
+    "Presidente Perón": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-sur/presidente-peron"
+      ]
+     },
+     "ids": {}
+    },
+    "Quilmes": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-sur/quilmes"
+      ]
+     },
+     "ids": {}
+    },
+    "San Fernando": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-norte/san-fernando"
+      ]
+     },
+     "ids": {}
+    },
+    "San Isidro": {
+     "aliases": [
+      "Beccar"
+     ],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-norte/beccar",
+       "bsas-gba-norte/san-isidro"
+      ]
+     },
+     "ids": {}
+    },
+    "San Miguel": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-norte/san-miguel"
+      ]
+     },
+     "ids": {}
+    },
+    "Tigre": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-norte/tigre"
+      ]
+     },
+     "ids": {}
+    },
+    "Tres de Febrero": {
+     "aliases": [
+      "Caseros"
+     ],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-oeste/caseros",
+       "bsas-gba-oeste/tres-de-febrero"
+      ]
+     },
+     "ids": {}
+    },
+    "Vicente López": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-norte/vicente-lopez"
+      ]
+     },
+     "ids": {}
+    }
+   }
+  },
+  "La Plata": {
+   "aliases": [],
+   "slugs": {
+    "mercadolibre": [
+     "bsas-gba-sur/la-plata"
+    ],
+    "argenprop": []
+   },
+   "ids": {
+    "argenprop": []
+   },
+   "barrios": {
+    "Altos de San Lorenzo": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-sur/la-plata/altos-de-san-lorenzo"
+      ]
+     },
+     "ids": {}
+    },
+    "Casco Urbano": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-sur/la-plata/la-plata"
+      ]
+     },
+     "ids": {}
+    },
+    "City Bell": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-sur/la-plata/city-bell"
+      ]
+     },
+     "ids": {}
+    },
+    "Joaquín Gorina": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-sur/la-plata/joaquin-gorina"
+      ]
+     },
+     "ids": {}
+    },
+    "José Melchor Romero": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-sur/la-plata/jose-melchor-romero"
+      ]
+     },
+     "ids": {}
+    },
+    "Lisandro Olmos": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-sur/la-plata/lisandro-olmos"
+      ]
+     },
+     "ids": {}
+    },
+    "Los Hornos": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-sur/la-plata/los-hornos"
+      ]
+     },
+     "ids": {}
+    },
+    "Manuel B. Gonnet": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-sur/la-plata/manuel-b-gonnet"
+      ]
+     },
+     "ids": {}
+    },
+    "Parque Sicardi": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-sur/la-plata/parque-sicardi"
+      ]
+     },
+     "ids": {}
+    },
+    "Tolosa": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-sur/la-plata/tolosa"
+      ]
+     },
+     "ids": {}
+    },
+    "Villa Elisa": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-sur/la-plata/villa-elisa"
+      ]
+     },
+     "ids": {}
+    },
+    "Villa Elvira": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-gba-sur/la-plata/villa-elvira"
+      ]
+     },
+     "ids": {}
+    }
+   }
+  },
+  "Rosario": {
+   "aliases": [],
+   "slugs": {
+    "mercadolibre": [
+     "santa-fe/rosario"
+    ],
+    "argenprop": []
+   },
+   "ids": {
+    "argenprop": []
+   },
+   "barrios": {
+    "Abasto": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "santa-fe/rosario/abasto"
+      ]
+     },
+     "ids": {}
+    },
+    "Alberdi": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "santa-fe/rosario/alberdi"
+      ]
+     },
+     "ids": {}
+    },
+    "Alberto Olmedo": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "santa-fe/rosario/alberto-olmedo"
+      ]
+     },
+     "ids": {}
+    },
+    "Alvear": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "santa-fe/rosario/alvear"
+      ]
+     },
+     "ids": {}
+    },
+    "Arroyito": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "santa-fe/rosario/arroyito"
+      ]
+     },
+     "ids": {}
+    },
+    "Azcuénaga": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "santa-fe/rosario/azcuenaga"
+      ]
+     },
+     "ids": {}
+    },
+    "Barrio Parque": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "santa-fe/rosario/barrio-parque"
+      ]
+     },
+     "ids": {}
+    },
+    "Belgrano": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "santa-fe/rosario/belgrano"
+      ]
+     },
+     "ids": {}
+    },
+    "Centro": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "santa-fe/rosario/centro"
+      ]
+     },
+     "ids": {}
+    },
+    "Cinco Esquinas": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "santa-fe/rosario/cinco-esquinas"
+      ]
+     },
+     "ids": {}
+    },
+    "Echesortu": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "santa-fe/rosario/echesortu"
+      ]
+     },
+     "ids": {}
+    },
+    "España Y Hospitales": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "santa-fe/rosario/espana-y-hospitales"
+      ]
+     },
+     "ids": {}
+    },
+    "Fisherton": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "santa-fe/rosario/fisherton"
+      ]
+     },
+     "ids": {}
+    },
+    "Funes": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "santa-fe/rosario/funes"
+      ]
+     },
+     "ids": {}
+    },
+    "Granadero Baigorria": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "santa-fe/rosario/granadero-baigorria"
+      ]
+     },
+     "ids": {}
+    },
+    "Ibarlucea": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "santa-fe/rosario/ibarlucea"
+      ]
+     },
+     "ids": {}
+    },
+    "Jorge Cura": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "santa-fe/rosario/jorge-cura"
+      ]
+     },
+     "ids": {}
+    },
+    "Las Malvinas": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "santa-fe/rosario/las-malvinas"
+      ]
+     },
+     "ids": {}
+    },
+    "Lourdes": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "santa-fe/rosario/lourdes"
+      ]
+     },
+     "ids": {}
+    },
+    "Ludueña": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "santa-fe/rosario/luduena"
+      ]
+     },
+     "ids": {}
+    },
+    "Luis Agote": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "santa-fe/rosario/luis-agote"
+      ]
+     },
+     "ids": {}
+    },
+    "Martin": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "santa-fe/rosario/martin"
+      ]
+     },
+     "ids": {}
+    },
+    "Parque Casado": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "santa-fe/rosario/parque-casado"
+      ]
+     },
+     "ids": {}
+    },
+    "Pueblo Esther": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "santa-fe/rosario/pueblo-esther"
+      ]
+     },
+     "ids": {}
+    },
+    "Puerto Norte": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "santa-fe/rosario/puerto-norte"
+      ]
+     },
+     "ids": {}
+    },
+    "República de la Sexta": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "santa-fe/rosario/republica-de-la-sexta"
+      ]
+     },
+     "ids": {}
+    }
+   }
+  },
+  "Córdoba": {
+   "aliases": [],
+   "slugs": {
+    "mercadolibre": [
+     "cordoba/cordoba"
+    ],
+    "argenprop": []
+   },
+   "ids": {
+    "argenprop": []
+   },
+   "barrios": {
+    "Alberdi": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/alberdi"
+      ]
+     },
+     "ids": {}
+    },
+    "Alta Córdoba": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/alta-cordoba"
+      ]
+     },
+     "ids": {}
+    },
+    "Alto Alberdi": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/alto-alberdi"
+      ]
+     },
+     "ids": {}
+    },
+    "Alto General Paz": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/alto-general-paz"
+      ]
+     },
+     "ids": {}
+    },
+    "Alto Verde": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/alto-verde"
+      ]
+     },
+     "ids": {}
+    },
+    "Alto Villasol": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/alto-villasol"
+      ]
+     },
+     "ids": {}
+    },
+    "Altos de Vélez Sársfield": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/altos-de-velez-sarsfield"
+      ]
+     },
+     "ids": {}
+    },
+    "Altos del Chateau": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/altos-del-chateau"
+      ]
+     },
+     "ids": {}
+    },
+    "Altos San Martín": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/altos-san-martin"
+      ]
+     },
+     "ids": {}
+    },
+    "Ampliación Los Plátanos": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/ampliacion-los-platanos"
+      ]
+     },
+     "ids": {}
+    },
+    "Ampliación San Fernando": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/ampliacion-san-fernando"
+      ]
+     },
+     "ids": {}
+    },
+    "Argüello": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/arguello"
+      ]
+     },
+     "ids": {}
+    },
+    "Argüello Norte": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/arguello-norte"
+      ]
+     },
+     "ids": {}
+    },
+    "ATE": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/ate"
+      ]
+     },
+     "ids": {}
+    },
+    "Ayacucho": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/ayacucho"
+      ]
+     },
+     "ids": {}
+    },
+    "Bajo General Paz": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/bajo-general-paz"
+      ]
+     },
+     "ids": {}
+    },
+    "Balcones del Chateu": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/balcones-del-chateu"
+      ]
+     },
+     "ids": {}
+    },
+    "California": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/california"
+      ]
+     },
+     "ids": {}
+    },
+    "Caseros": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/caseros"
+      ]
+     },
+     "ids": {}
+    },
+    "Casonas del Sur": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/casonas-del-sur"
+      ]
+     },
+     "ids": {}
+    },
+    "Centro": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/centro"
+      ]
+     },
+     "ids": {}
+    },
+    "Cerro de las Rosas": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/cerro-de-las-rosas"
+      ]
+     },
+     "ids": {}
+    },
+    "Chacra del Sur": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/chacra-del-sur"
+      ]
+     },
+     "ids": {}
+    },
+    "Chacras Green": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/chacras-green"
+      ]
+     },
+     "ids": {}
+    },
+    "Chateau Carreras": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/chateau-carreras"
+      ]
+     },
+     "ids": {}
+    },
+    "Ciudadela": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/ciudadela"
+      ]
+     },
+     "ids": {}
+    },
+    "Cofico": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/cofico"
+      ]
+     },
+     "ids": {}
+    },
+    "Colón": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/colon"
+      ]
+     },
+     "ids": {}
+    },
+    "Comandante Espora": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/comandante-espora"
+      ]
+     },
+     "ids": {}
+    },
+    "Costas de Manantiales": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/costas-de-manantiales"
+      ]
+     },
+     "ids": {}
+    },
+    "Crisol Norte": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/crisol-norte"
+      ]
+     },
+     "ids": {}
+    },
+    "Crisol Sud": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/crisol-sud"
+      ]
+     },
+     "ids": {}
+    },
+    "Docta Urbanización": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/docta-urbanizacion"
+      ]
+     },
+     "ids": {}
+    },
+    "Ducasse": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/ducasse"
+      ]
+     },
+     "ids": {}
+    },
+    "Empalme": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/empalme"
+      ]
+     },
+     "ids": {}
+    },
+    "Escobar": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/escobar"
+      ]
+     },
+     "ids": {}
+    },
+    "Ferroviario Mitre": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/ferroviario-mitre"
+      ]
+     },
+     "ids": {}
+    },
+    "General Bustos": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/general-bustos"
+      ]
+     },
+     "ids": {}
+    },
+    "General Mosconi": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/general-mosconi"
+      ]
+     },
+     "ids": {}
+    },
+    "General Paz": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/general-paz"
+      ]
+     },
+     "ids": {}
+    },
+    "General Pueyrredón": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/general-pueyrredon"
+      ]
+     },
+     "ids": {}
+    },
+    "Granja de Funes": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/granja-de-funes"
+      ]
+     },
+     "ids": {}
+    },
+    "Guemes": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/guemes"
+      ]
+     },
+     "ids": {}
+    },
+    "Hogar Propio": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/hogar-propio"
+      ]
+     },
+     "ids": {}
+    },
+    "Independencia": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/independencia"
+      ]
+     },
+     "ids": {}
+    },
+    "Iponá": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/ipona"
+      ]
+     },
+     "ids": {}
+    },
+    "Ituzaingó": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/ituzaingo"
+      ]
+     },
+     "ids": {}
+    },
+    "Jardín": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/jardin"
+      ]
+     },
+     "ids": {}
+    },
+    "Jerónimo Luis de Cabrera": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/jeronimo-luis-de-cabrera"
+      ]
+     },
+     "ids": {}
+    },
+    "Jockey Club": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/jockey-club"
+      ]
+     },
+     "ids": {}
+    },
+    "José Hernández": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/jose-hernandez"
+      ]
+     },
+     "ids": {}
+    },
+    "José Ignacio Díaz Primera Sección": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/jose-ignacio-diaz-primera-seccion"
+      ]
+     },
+     "ids": {}
+    },
+    "Juniors": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/juniors"
+      ]
+     },
+     "ids": {}
+    },
+    "Kennedy": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/kennedy"
+      ]
+     },
+     "ids": {}
+    },
+    "La Catalina Urbanización Residencial": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/la-catalina-urbanizacion-residencial"
+      ]
+     },
+     "ids": {}
+    },
+    "La Hortensia": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/la-hortensia"
+      ]
+     },
+     "ids": {}
+    },
+    "Las Cañitas Villa Urbana": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/las-canitas-villa-urbana"
+      ]
+     },
+     "ids": {}
+    },
+    "Las Flores": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/las-flores"
+      ]
+     },
+     "ids": {}
+    },
+    "Las Magnolias": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/las-magnolias"
+      ]
+     },
+     "ids": {}
+    },
+    "Las Palmas": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/las-palmas"
+      ]
+     },
+     "ids": {}
+    },
+    "Las Rosas": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/las-rosas"
+      ]
+     },
+     "ids": {}
+    },
+    "Lomas de San Martín": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/lomas-de-san-martin"
+      ]
+     },
+     "ids": {}
+    },
+    "Los Boulevares": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/los-boulevares"
+      ]
+     },
+     "ids": {}
+    },
+    "Los Naranjos": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/los-naranjos"
+      ]
+     },
+     "ids": {}
+    },
+    "Los Olmos": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/los-olmos"
+      ]
+     },
+     "ids": {}
+    },
+    "Los Olmos Sud": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/los-olmos-sud"
+      ]
+     },
+     "ids": {}
+    },
+    "Maipú Primera Sección": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/maipu-primera-seccion"
+      ]
+     },
+     "ids": {}
+    },
+    "Maipú Segunda Sección": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/maipu-segunda-seccion"
+      ]
+     },
+     "ids": {}
+    },
+    "Manantiales": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/manantiales"
+      ]
+     },
+     "ids": {}
+    },
+    "Marqués de Sobremonte": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/marques-de-sobremonte"
+      ]
+     },
+     "ids": {}
+    },
+    "Maurizi": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/maurizi"
+      ]
+     },
+     "ids": {}
+    },
+    "Nobu Housing": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/nobu-housing"
+      ]
+     },
+     "ids": {}
+    },
+    "Nueva Córdoba": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/nueva-cordoba"
+      ]
+     },
+     "ids": {}
+    },
+    "Nuevo Urca": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/nuevo-urca"
+      ]
+     },
+     "ids": {}
+    },
+    "Obrero": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/obrero"
+      ]
+     },
+     "ids": {}
+    },
+    "Observatorio": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/observatorio"
+      ]
+     },
+     "ids": {}
+    },
+    "Palermo Bajo": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/palermo-bajo"
+      ]
+     },
+     "ids": {}
+    },
+    "Parque Horizonte": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/parque-horizonte"
+      ]
+     },
+     "ids": {}
+    },
+    "Parque Latino": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/parque-latino"
+      ]
+     },
+     "ids": {}
+    },
+    "Parque Sarmiento": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/parque-sarmiento"
+      ]
+     },
+     "ids": {}
+    },
+    "Parque Vélez Sársfield": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/parque-velez-sarsfield"
+      ]
+     },
+     "ids": {}
+    },
+    "Paso de los Andes": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/paso-de-los-andes"
+      ]
+     },
+     "ids": {}
+    },
+    "Poeta Lugones": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/poeta-lugones"
+      ]
+     },
+     "ids": {}
+    },
+    "Prados de manantiales": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/prados-de-manantiales"
+      ]
+     },
+     "ids": {}
+    },
+    "Providencia": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/providencia"
+      ]
+     },
+     "ids": {}
+    },
+    "Quebrada de las Rosas": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/quebrada-de-las-rosas"
+      ]
+     },
+     "ids": {}
+    },
+    "Residencial América": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/residencial-america"
+      ]
+     },
+     "ids": {}
+    },
+    "Residencial San Carlos": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/residencial-san-carlos"
+      ]
+     },
+     "ids": {}
+    },
+    "Residencial Santa Ana": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/residencial-santa-ana"
+      ]
+     },
+     "ids": {}
+    },
+    "Rivadavia": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/rivadavia"
+      ]
+     },
+     "ids": {}
+    },
+    "Rivera Indarte": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/rivera-indarte"
+      ]
+     },
+     "ids": {}
+    },
+    "San Fernando": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/san-fernando"
+      ]
+     },
+     "ids": {}
+    },
+    "San Ignacio": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/san-ignacio"
+      ]
+     },
+     "ids": {}
+    },
+    "San Martín": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/san-martin"
+      ]
+     },
+     "ids": {}
+    },
+    "San Rafael": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/san-rafael"
+      ]
+     },
+     "ids": {}
+    },
+    "San Salvador": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/san-salvador"
+      ]
+     },
+     "ids": {}
+    },
+    "San Vicente": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/san-vicente"
+      ]
+     },
+     "ids": {}
+    },
+    "Santa Isabel Primera Sección": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/santa-isabel-primera-seccion"
+      ]
+     },
+     "ids": {}
+    },
+    "Sarmiento": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/sarmiento"
+      ]
+     },
+     "ids": {}
+    },
+    "Siete Soles": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/siete-soles"
+      ]
+     },
+     "ids": {}
+    },
+    "SMATA": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/smata"
+      ]
+     },
+     "ids": {}
+    },
+    "Talleres Este": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/talleres-este"
+      ]
+     },
+     "ids": {}
+    },
+    "Talleres Oeste": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/talleres-oeste"
+      ]
+     },
+     "ids": {}
+    },
+    "Tejas del Sur": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/tejas-del-sur"
+      ]
+     },
+     "ids": {}
+    },
+    "Teniente Benjamín Matienzo": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/teniente-benjamin-matienzo"
+      ]
+     },
+     "ids": {}
+    },
+    "Teodoro Felds": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/teodoro-felds"
+      ]
+     },
+     "ids": {}
+    },
+    "Urca": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/urca"
+      ]
+     },
+     "ids": {}
+    },
+    "Valle Cercano": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/valle-cercano"
+      ]
+     },
+     "ids": {}
+    },
+    "Valle Escondido": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/valle-escondido"
+      ]
+     },
+     "ids": {}
+    },
+    "Villa 9 de Julio": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/villa-9-de-julio"
+      ]
+     },
+     "ids": {}
+    },
+    "Villa Alberdi": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/villa-alberdi"
+      ]
+     },
+     "ids": {}
+    },
+    "Villa Belgrano": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/villa-belgrano"
+      ]
+     },
+     "ids": {}
+    },
+    "Villa Cabrera": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/villa-cabrera"
+      ]
+     },
+     "ids": {}
+    },
+    "Villa El Libertador": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/villa-el-libertador"
+      ]
+     },
+     "ids": {}
+    },
+    "Villa Páez": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/villa-paez"
+      ]
+     },
+     "ids": {}
+    },
+    "Villa Quisquizacate": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/villa-quisquizacate"
+      ]
+     },
+     "ids": {}
+    },
+    "Villa San Isidro": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/villa-san-isidro"
+      ]
+     },
+     "ids": {}
+    },
+    "Villa Siburu": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/villa-siburu"
+      ]
+     },
+     "ids": {}
+    },
+    "Villa Warcalde": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/villa-warcalde"
+      ]
+     },
+     "ids": {}
+    },
+    "Yofre Norte": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "cordoba/cordoba/yofre-norte"
+      ]
+     },
+     "ids": {}
+    }
+   }
+  },
+  "Mendoza": {
+   "aliases": [],
+   "slugs": {
+    "mercadolibre": [
+     "mendoza/mendoza",
+     "mendoza/godoy-cruz",
+     "mendoza/guaymallen",
+     "mendoza/las-heras",
+     "mendoza/lujan-de-cuyo",
+     "mendoza/maipu"
+    ],
+    "argenprop": []
+   },
+   "ids": {
+    "argenprop": []
+   },
+   "barrios": {
+    "Ciudad de Mendoza": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "mendoza/mendoza"
+      ]
+     },
+     "ids": {}
+    },
+    "Godoy Cruz": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "mendoza/godoy-cruz"
+      ]
+     },
+     "ids": {}
+    },
+    "Guaymallén": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "mendoza/guaymallen"
+      ]
+     },
+     "ids": {}
+    },
+    "Las Heras": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "mendoza/las-heras"
+      ]
+     },
+     "ids": {}
+    },
+    "Luján de Cuyo": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "mendoza/lujan-de-cuyo"
+      ]
+     },
+     "ids": {}
+    },
+    "Maipú": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "mendoza/maipu"
+      ]
+     },
+     "ids": {}
+    }
+   }
+  },
+  "Mar del Plata": {
+   "aliases": [],
+   "slugs": {
+    "mercadolibre": [
+     "bsas-costa-atlantica/mar-del-plata"
+    ],
+    "argenprop": []
+   },
+   "ids": {
+    "argenprop": []
+   },
+   "barrios": {
+    "Centro": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-costa-atlantica/mar-del-plata/centro"
+      ]
+     },
+     "ids": {}
+    },
+    "Chauvin": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-costa-atlantica/mar-del-plata/chauvin"
+      ]
+     },
+     "ids": {}
+    },
+    "Constitución": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-costa-atlantica/mar-del-plata/constitucion"
+      ]
+     },
+     "ids": {}
+    },
+    "El Faro": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-costa-atlantica/mar-del-plata/el-faro"
+      ]
+     },
+     "ids": {}
+    },
+    "Güemes": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-costa-atlantica/mar-del-plata/guemes"
+      ]
+     },
+     "ids": {}
+    },
+    "La Perla": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-costa-atlantica/mar-del-plata/la-perla"
+      ]
+     },
+     "ids": {}
+    },
+    "Loma Stella Maris": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-costa-atlantica/mar-del-plata/loma-stella-maris"
+      ]
+     },
+     "ids": {}
+    },
+    "Los Acantilados": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-costa-atlantica/mar-del-plata/los-acantilados"
+      ]
+     },
+     "ids": {}
+    },
+    "Los Troncos": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-costa-atlantica/mar-del-plata/los-troncos"
+      ]
+     },
+     "ids": {}
+    },
+    "Macrocentro": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-costa-atlantica/mar-del-plata/macrocentro"
+      ]
+     },
+     "ids": {}
+    },
+    "Parque Luro": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-costa-atlantica/mar-del-plata/parque-luro"
+      ]
+     },
+     "ids": {}
+    },
+    "Playa Chica": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-costa-atlantica/mar-del-plata/playa-chica"
+      ]
+     },
+     "ids": {}
+    },
+    "Playa Grande": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-costa-atlantica/mar-del-plata/playa-grande"
+      ]
+     },
+     "ids": {}
+    },
+    "Plaza Colón": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-costa-atlantica/mar-del-plata/plaza-colon"
+      ]
+     },
+     "ids": {}
+    },
+    "Plaza Mitre": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-costa-atlantica/mar-del-plata/plaza-mitre"
+      ]
+     },
+     "ids": {}
+    },
+    "Puerto": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-costa-atlantica/mar-del-plata/puerto"
+      ]
+     },
+     "ids": {}
+    },
+    "Punta Mogotes": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-costa-atlantica/mar-del-plata/punta-mogotes"
+      ]
+     },
+     "ids": {}
+    },
+    "San Carlos": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-costa-atlantica/mar-del-plata/san-carlos"
+      ]
+     },
+     "ids": {}
+    },
+    "San José": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-costa-atlantica/mar-del-plata/san-jose"
+      ]
+     },
+     "ids": {}
+    },
+    "Terminal Vieja": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-costa-atlantica/mar-del-plata/terminal-vieja"
+      ]
+     },
+     "ids": {}
+    },
+    "Torreón": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-costa-atlantica/mar-del-plata/torreon"
+      ]
+     },
+     "ids": {}
+    },
+    "Varese": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-costa-atlantica/mar-del-plata/varese"
+      ]
+     },
+     "ids": {}
+    },
+    "Zacagnini": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "bsas-costa-atlantica/mar-del-plata/zacagnini"
+      ]
+     },
+     "ids": {}
+    }
+   }
+  },
+  "Bariloche": {
+   "aliases": [
+    "San Carlos de Bariloche"
+   ],
+   "slugs": {
+    "mercadolibre": [
+     "rio-negro/bariloche"
+    ],
+    "argenprop": []
+   },
+   "ids": {
+    "argenprop": []
+   },
+   "barrios": {
+    "Belgrano": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "rio-negro/bariloche/belgrano"
+      ]
+     },
+     "ids": {}
+    },
+    "Belgrano Sudeste": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "rio-negro/bariloche/belgrano-sudeste"
+      ]
+     },
+     "ids": {}
+    },
+    "Centro": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "rio-negro/bariloche/centro"
+      ]
+     },
+     "ids": {}
+    },
+    "El Mirador": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "rio-negro/bariloche/el-mirador"
+      ]
+     },
+     "ids": {}
+    },
+    "Jardín Botánico": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "rio-negro/bariloche/jardin-botanico"
+      ]
+     },
+     "ids": {}
+    },
+    "Las Margaritas": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "rio-negro/bariloche/las-margaritas"
+      ]
+     },
+     "ids": {}
+    },
+    "Los Retamos": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "rio-negro/bariloche/los-retamos"
+      ]
+     },
+     "ids": {}
+    },
+    "Pinar de Festa": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "rio-negro/bariloche/pinar-de-festa"
+      ]
+     },
+     "ids": {}
+    },
+    "Pinar del Lago": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "rio-negro/bariloche/pinar-del-lago"
+      ]
+     },
+     "ids": {}
+    },
+    "San Francisco": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "rio-negro/bariloche/san-francisco"
+      ]
+     },
+     "ids": {}
+    },
+    "San Ignacio del Cerro": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "rio-negro/bariloche/san-ignacio-del-cerro"
+      ]
+     },
+     "ids": {}
+    },
+    "Villa Los Coihues": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "rio-negro/bariloche/villa-los-coihues"
+      ]
+     },
+     "ids": {}
+    }
+   }
+  },
+  "Salta": {
+   "aliases": [],
+   "slugs": {
+    "mercadolibre": [
+     "salta/salta"
+    ],
+    "argenprop": []
+   },
+   "ids": {
+    "argenprop": []
+   },
+   "barrios": {
+    "Centro": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "salta/salta/centro"
+      ]
+     },
+     "ids": {}
+    },
+    "Tres Cerritos": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "salta/salta/tres-cerritos"
+      ]
+     },
+     "ids": {}
+    }
+   }
+  },
+  "Neuquén": {
+   "aliases": [],
+   "slugs": {
+    "mercadolibre": [
+     "neuquen/neuquen"
+    ],
+    "argenprop": []
+   },
+   "ids": {
+    "argenprop": []
+   },
+   "barrios": {
+    "Alta Barda": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "neuquen/neuquen/alta-barda"
+      ]
+     },
+     "ids": {}
+    },
+    "Área Centro Este": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "neuquen/neuquen/area-centro-este"
+      ]
+     },
+     "ids": {}
+    },
+    "Área Centro Oeste": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "neuquen/neuquen/area-centro-oeste"
+      ]
+     },
+     "ids": {}
+    },
+    "Área Centro Sur": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "neuquen/neuquen/area-centro-sur"
+      ]
+     },
+     "ids": {}
+    },
+    "Barrio Nuevo": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "neuquen/neuquen/barrio-nuevo"
+      ]
+     },
+     "ids": {}
+    },
+    "Huilliches": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "neuquen/neuquen/huilliches"
+      ]
+     },
+     "ids": {}
+    },
+    "La Sirena": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "neuquen/neuquen/la-sirena"
+      ]
+     },
+     "ids": {}
+    },
+    "Rincón De Emilio": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "neuquen/neuquen/rincon-de-emilio"
+      ]
+     },
+     "ids": {}
+    },
+    "Río Grande": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "neuquen/neuquen/rio-grande"
+      ]
+     },
+     "ids": {}
+    },
+    "Santa Genoveva": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "neuquen/neuquen/santa-genoveva"
+      ]
+     },
+     "ids": {}
+    }
+   }
+  },
+  "Tucumán": {
+   "aliases": [
+    "San Miguel de Tucumán"
+   ],
+   "slugs": {
+    "mercadolibre": [
+     "tucuman/san-miguel-de-tucuman",
+     "tucuman/yerba-buena"
+    ],
+    "argenprop": []
+   },
+   "ids": {
+    "argenprop": []
+   },
+   "barrios": {
+    "Barrio Norte": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "tucuman/san-miguel-de-tucuman/barrio-norte"
+      ]
+     },
+     "ids": {}
+    },
+    "Barrio Sur": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "tucuman/san-miguel-de-tucuman/barrio-sur"
+      ]
+     },
+     "ids": {}
+    },
+    "Centro": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "tucuman/san-miguel-de-tucuman/centro"
+      ]
+     },
+     "ids": {}
+    },
+    "Obispo Piedra Buena": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "tucuman/san-miguel-de-tucuman/obispo-piedra-buena"
+      ]
+     },
+     "ids": {}
+    },
+    "Villa Alem": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "tucuman/san-miguel-de-tucuman/villa-alem"
+      ]
+     },
+     "ids": {}
+    },
+    "Villa Lujan": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "tucuman/san-miguel-de-tucuman/villa-lujan"
+      ]
+     },
+     "ids": {}
+    },
+    "Yerba Buena": {
+     "aliases": [],
+     "slugs": {
+      "mercadolibre": [
+       "tucuman/yerba-buena"
+      ]
+     },
+     "ids": {}
+    }
+   }
+  }
+ }
+}

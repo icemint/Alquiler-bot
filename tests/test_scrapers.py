@@ -111,12 +111,37 @@ def test_mercadolibre_url_carries_every_filter():
     scraper = MercadoLibreScraper(
         config, config.sources["mercadolibre"], NeighborhoodResolver(), HttpClient("ua")
     )
-    url = scraper.build_url(PropertyType.DEPARTAMENTO, "barrio-norte")
+    url = scraper.build_url(PropertyType.DEPARTAMENTO, "capital-federal/barrio-norte")
     assert url == (
         "https://inmuebles.mercadolibre.com.ar/departamentos/alquiler/capital-federal/"
         "barrio-norte/_PriceRange_0ARS-1000000ARS_TOTAL*AREA_50-*"
     )
-    assert "_Desde_49" in scraper.build_url(PropertyType.PH, "recoleta", offset=48)
+    assert "_Desde_49" in scraper.build_url(PropertyType.PH, "capital-federal/recoleta", offset=48)
+
+
+def test_mercadolibre_searches_each_sub_zone_of_a_chosen_barrio():
+    config = build_config()
+    config.criteria.neighborhoods = ["CABA/Palermo"]
+    scraper = MercadoLibreScraper(
+        config, config.sources["mercadolibre"], NeighborhoodResolver(), HttpClient("ua")
+    )
+    searches = scraper.searches()
+    assert ("capital-federal/palermo-soho", False) in searches
+    assert all(not whole for _path, whole in searches)
+
+
+def test_mercadolibre_searches_a_whole_city_by_todays_listings():
+    config = build_config()
+    config.criteria.cities = ["CABA", "AMBA"]
+    config.criteria.neighborhoods = ["CABA/Recoleta"]
+    scraper = MercadoLibreScraper(
+        config, config.sources["mercadolibre"], NeighborhoodResolver(), HttpClient("ua")
+    )
+    searches = scraper.searches()
+    assert ("capital-federal/recoleta", False) in searches
+    assert ("bsas-gba-norte", True) in searches and ("bsas-gba-sur", True) in searches
+    url = scraper.build_url(PropertyType.DEPARTAMENTO, "bsas-gba-norte", published_today=True)
+    assert "/bsas-gba-norte/_PublishedToday_YES_PriceRange" in url
 
 
 def test_argenprop_combines_both_neighborhoods_into_one_request():
@@ -124,26 +149,31 @@ def test_argenprop_combines_both_neighborhoods_into_one_request():
     scraper = ArgenPropScraper(
         config, config.sources["argenprop"], NeighborhoodResolver(), HttpClient("ua")
     )
-    assert scraper.neighborhood_segment() == "barrio-norte-o-recoleta"
+    assert scraper.segments() == ["barrio-norte-o-recoleta"]
     url = scraper.build_url(PropertyType.DEPARTAMENTO, "barrio-norte-o-recoleta")
     assert url == (
         "https://www.argenprop.com/departamentos/alquiler/barrio-norte-o-recoleta?orden-masnuevos"
     )
 
 
-def test_argenprop_falls_back_to_one_request_per_neighborhood_when_robots_forbids_combining():
-    # robots.txt disallows /*-o-*-o-* , i.e. three or more combined values.
+def test_argenprop_searches_the_whole_city_when_robots_forbids_combining():
+    # robots.txt disallows /*-o-*-o-* , i.e. three or more combined values;
+    # the city's newest-first search then covers them in one request.
     config = build_config()
-    config.criteria.neighborhoods = ["Recoleta", "Barrio Norte", "Palermo"]
-    resolver = NeighborhoodResolver(
-        {
-            "Recoleta": {"aliases": ["recoleta"], "slugs": {"argenprop": ["recoleta"]}},
-            "Barrio Norte": {"aliases": ["barrio norte"], "slugs": {"argenprop": ["barrio-norte"]}},
-            "Palermo": {"aliases": ["palermo"], "slugs": {"argenprop": ["palermo"]}},
-        }
+    config.criteria.neighborhoods = ["CABA/Recoleta", "CABA/Barrio Norte", "CABA/Palermo"]
+    scraper = ArgenPropScraper(
+        config, config.sources["argenprop"], NeighborhoodResolver(), HttpClient("ua")
     )
-    scraper = ArgenPropScraper(config, config.sources["argenprop"], resolver, HttpClient("ua"))
-    assert scraper.neighborhood_segment() is None
+    assert scraper.segments() == ["capital-federal"]
+
+
+def test_argenprop_uses_the_city_search_for_barrios_without_a_slug():
+    config = build_config()
+    config.criteria.neighborhoods = ["CABA/Agronomía"]
+    scraper = ArgenPropScraper(
+        config, config.sources["argenprop"], NeighborhoodResolver(), HttpClient("ua")
+    )
+    assert scraper.segments() == ["capital-federal"]
 
 
 # ---------------------------------------------------------------- zonaprop

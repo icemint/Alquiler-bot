@@ -181,6 +181,63 @@ def test_listings_found_after_the_first_run_are_notified(database):
     assert "MLA-fresh" in service.notifier.messages[0]
 
 
+def test_a_source_added_later_starts_quietly(database):
+    old = FakeScraper("mercadolibre", [make_listing(external_id="old")])
+    service = build_service(database, [old], notify_on_first_run=False)
+    service.run_cycle()
+
+    added = FakeScraper(
+        "cabaprop",
+        [
+            make_listing(
+                source="cabaprop", external_id=str(i), url=f"https://cabaprop.com.ar/p/{i}"
+            )
+            for i in range(3)
+        ],
+    )
+    old._listings.append(
+        make_listing(
+            external_id="fresh", url="https://departamento.mercadolibre.com.ar/MLA-fresh-_JM"
+        )
+    )
+    service.scrapers = [old, added]
+    report = service.run_cycle()
+    assert report.suppressed_on_bootstrap == 3
+    # The established source's new listing still goes out in the same cycle.
+    assert report.notifications_sent == 1
+    assert "MLA-fresh" in service.notifier.messages[-1]
+
+
+def test_a_source_blocked_on_its_first_run_bootstraps_once_it_works(database):
+    scraper = FakeScraper("cabaprop", status=SourceStatus.BLOCKED, error="WAF")
+    service = build_service(database, [scraper], notify_on_first_run=False)
+    service.run_cycle()
+
+    scraper._status = SourceStatus.OK
+    scraper._error = None
+    scraper._listings = [make_listing(source="cabaprop", external_id="1")]
+    service._should_skip = lambda _scraper: None  # skip the post-block backoff
+    report = service.run_cycle()
+    assert report.suppressed_on_bootstrap == 1
+    assert report.notifications_sent == 0
+
+
+def test_a_source_that_notified_before_is_not_silenced(database):
+    scraper = FakeScraper("mercadolibre", [make_listing(external_id="old")])
+    service = build_service(database, [scraper])  # notify_on_first_run=True
+    service.run_cycle()
+
+    service.config.notify_on_first_run = False
+    scraper._listings.append(
+        make_listing(
+            external_id="fresh", url="https://departamento.mercadolibre.com.ar/MLA-fresh-_JM"
+        )
+    )
+    report = service.run_cycle()
+    assert report.suppressed_on_bootstrap == 0
+    assert report.notifications_sent == 1
+
+
 def test_min_interval_skips_a_source_until_it_elapses(database):
     scraper = FakeScraper("argenprop", [make_listing()])
     scraper.source_config = SourceConfig(name="argenprop", min_interval_seconds=600)

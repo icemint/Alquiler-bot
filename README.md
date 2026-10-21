@@ -19,7 +19,7 @@ before. The SQLite database makes that memory survive restarts.
 
 ## 1. What it does
 
-- Polls **MercadoLibre Inmuebles** and **ArgenProp** on a fixed interval
+- Polls **MercadoLibre Inmuebles**, **ArgenProp** and **CabaProp** on a fixed interval
   (ZonaProp is included but disabled — see [Sources](#3-sources-and-how-they-are-accessed)).
 - Normalizes every advertisement into one `Listing` model, whatever the source.
 - Filters on operation, property type, neighborhood, area, price and currency.
@@ -27,7 +27,11 @@ before. The SQLite database makes that memory survive restarts.
   a restart, not after a redeploy.
 - Sends a Telegram message and/or an email per new listing, or one grouped
   digest when a single cycle turns up many.
-- Answers `/start`, `/status` and `/stats` in the same chat.
+- Lets anyone subscribe: `/start` in the bot subscribes a chat, `/stop`
+  unsubscribes; `/status` shows when the sites were last checked.
+- Gives every subscriber their own search: `/settings` changes neighborhoods,
+  property types, maximum rent, minimum area, bedrooms and furnished with
+  buttons.
 
 ### What it deliberately does *not* do
 
@@ -58,7 +62,7 @@ monitor/
 │   └── notification/    message formatting + Telegram delivery
 ├── database/            SQLite schema and repository
 ├── scheduler/           the monitoring cycle and the loop
-└── telegram/            /start, /status, /stats command bot
+└── telegram/            /start, /settings, /stop, /status command bot
 ```
 
 The dependency direction is one-way: scrapers know nothing about SQLite or
@@ -82,6 +86,7 @@ things.
 |---|---|---|---|
 | MercadoLibre | Server-rendered search pages, filtered by URL | ~6 (2 neighborhoods × 3 types) | Working, verified live |
 | ArgenProp | Server-rendered search pages, newest-first | 3, on its own 10-minute interval | Working, verified live |
+| CabaProp | The site's own JSON search endpoint, newest-first | 1 | Working, verified live |
 | ZonaProp | — | 0 | Disabled: Cloudflare challenge |
 
 **MercadoLibre.** Its URL grammar carries every filter we need, which keeps the
@@ -106,6 +111,17 @@ with an empty body when it dislikes your rate, and that block outlives short
 backoffs — hence the 20-second delay between requests and the separate
 `ARGENPROP_MIN_INTERVAL_SECONDS` interval.
 
+**CabaProp.** The portal of CABA's real-estate brokers' board (CUCICBA), so it
+only lists licensed agencies in the city. Its search page is a client-side app
+that POSTs the filters to `/api/v1/properties/find-properties` and renders the
+JSON; the scraper sends that same request — rent, property types, barrio ids,
+price ceiling and minimum total area, newest first — so one request per cycle
+covers everything new. Every field is structured: price and expensas with their
+currency (`1` = USD, `2` = ARS), total and covered area, barrio ids. There is
+no anti-bot challenge and robots.txt only disallows account pages. The endpoint
+is undocumented, so a change in its response shape is reported as an error,
+never as "0 listings found".
+
 **ZonaProp.** Every URL, including the sitemaps listed in its own robots.txt,
 returns `403` with `cf-mitigated: challenge` and Cloudflare's "Just a moment…"
 page. There is no public API and no RSS feed. Getting past it would mean
@@ -129,7 +145,11 @@ every five minutes, not dozens of requests a second.
 
 ## 4. Notification channels
 
-Telegram and email are independent: configure either, or both. Every configured
+Telegram is the main channel: every chat that sent `/start` to the bot gets
+the new listings matching its own search (see [Changing the search
+criteria](#8-changing-the-search-criteria)). Email is optional and off in `.env.example`
+(`EMAIL_ENABLED=false`). Telegram and email are independent: configure either,
+or both. Every configured
 channel receives every notification, and a listing counts as delivered as soon
 as one channel accepts it — a misconfigured second channel never causes endless
 re-sending. With no channel configured the service still runs and writes the
@@ -167,7 +187,16 @@ in any client.
 3. BotFather replies with a token like `123456789:AAF...`. That is
    `TELEGRAM_BOT_TOKEN`. Keep it secret — anyone holding it controls the bot.
 
-### Finding your chat ID
+That token is all the bot needs. Start the service, open your bot in Telegram
+and send `/start`: you are subscribed. Share the bot's username with anyone else
+who should get the listings — they send `/start` too. `/stop` unsubscribes, and
+a chat that blocks the bot is unsubscribed automatically.
+
+### Finding your chat ID (optional)
+
+`TELEGRAM_CHAT_ID` is only a convenience: that chat is subscribed automatically
+on the first start, so you get notifications without sending `/start`. If it
+later sends `/stop`, a restart does not resubscribe it.
 
 Send your new bot any message first (a bot cannot start a conversation), then:
 
@@ -179,34 +208,37 @@ Look for `"chat": {"id": 123456789, ...}` — that number is `TELEGRAM_CHAT_ID`.
 For a group, add the bot to the group, post a message there, and use the group's
 negative id (e.g. `-1001234567890`).
 
-The bot only answers the configured chat; commands from anywhere else are
-ignored and logged.
+The bot answers everyone. `/status` shows only the last check and the chat's
+own filters, never who is subscribed. Subscribers are stored in the `subscribers` table of
+the SQLite database.
 
 ---
 
 ## 6. Environment variables
 
-Copy `.env.example` to `.env` and fill it in. Everything except the two Telegram
-secrets has a working default.
+Copy `.env.example` to `.env` and fill it in. Everything except the Telegram
+bot token has a working default. Quote values that contain spaces
+(`NEIGHBORHOODS="Recoleta,Barrio Norte"`) so the file can be sourced by a shell.
 
 | Variable | Default | Meaning |
 |---|---|---|
 | `TELEGRAM_BOT_TOKEN` | — | Bot token from BotFather. |
-| `TELEGRAM_CHAT_ID` | — | Chat that receives notifications and may issue commands. |
+| `TELEGRAM_CHAT_ID` | — | Optional. Chat subscribed automatically on the first start. |
 | `EMAIL_TO` | — | Comma-separated recipients. Enables the email channel. |
 | `SMTP_HOST` / `SMTP_PORT` | `smtp.gmail.com` / `587` | SMTP server. Port `465` implies implicit TLS. |
 | `SMTP_USER` / `SMTP_PASSWORD` | — | SMTP login. For Gmail, an App Password. |
 | `EMAIL_FROM` / `EMAIL_FROM_NAME` | `SMTP_USER` / `CABA Rental Monitor` | Sender identity. |
 | `EMAIL_SUBJECT_PREFIX` | `[Alquiler] ` | Prefix on every subject, handy for inbox filters. |
 | `EMAIL_ENABLED` | `true` | Set to `false` to keep the settings but mute the channel. |
-| `MAX_RENT` | `1000000` | Maximum **rent**. Expensas are never added to it. |
-| `MIN_AREA` | `50` | Minimum area in m². |
+| `MAX_RENT` | `1000000` | Default maximum **rent**. Expensas are never added to it. |
+| `MIN_AREA` | `50` | Default minimum area in m². |
 | `CURRENCY` | `ARS` | Listings in any other currency are rejected. |
-| `NEIGHBORHOODS` | `Recoleta,Barrio Norte` | Must exist in the neighborhood map. |
-| `PROPERTY_TYPES` | `Departamento,Casa,PH` | Any subset of the three. |
+| `CITIES` | `CABA` | Default cities. A city with no barrios in `NEIGHBORHOODS` is searched whole. |
+| `NEIGHBORHOODS` | `CABA/Recoleta,CABA/Barrio Norte` | Default barrios as `City/Barrio` (a bare name is a CABA barrio). Must exist in the location map. |
+| `PROPERTY_TYPES` | `Departamento,Casa,PH` | Default types. Any subset of the three. |
 | `CHECK_INTERVAL` | `5` | Minutes between cycles. |
-| `SOURCES` | `mercadolibre,argenprop` | Which sources to poll. |
-| `NOTIFY_ON_FIRST_RUN` | `false` | On an empty database, record what exists without notifying. |
+| `SOURCES` | `mercadolibre,argenprop,cabaprop` | Which sources to poll. |
+| `NOTIFY_ON_FIRST_RUN` | `false` | On each source's first successful run, record what exists without notifying. |
 | `DATABASE_PATH` | `data/listings.sqlite3` | SQLite file. `/data/listings.sqlite3` in Docker. |
 | `LOG_LEVEL` / `LOG_FORMAT` | `INFO` / `text` | `LOG_FORMAT=json` emits one JSON object per line. |
 | `TZ` | `America/Argentina/Buenos_Aires` | Timezone used in messages and logs. |
@@ -215,10 +247,13 @@ secrets has a working default.
 | `ARGENPROP_MIN_INTERVAL_SECONDS` | `600` | ArgenProp is polled at most this often. |
 | `ARGENPROP_REQUEST_DELAY` / `MERCADOLIBRE_REQUEST_DELAY` | `20` / `2` | Seconds between requests to that host. |
 | `ARGENPROP_MAX_PAGES` / `MERCADOLIBRE_MAX_PAGES` | `1` / `3` | Pagination limit per search. |
+| `MERCADOLIBRE_CITY_MAX_PAGES` | `5` | Pages per whole-city MercadoLibre search (published today only). |
+| `CABAPROP_PAGE_SIZE` / `CABAPROP_MAX_PAGES` | `30` / `1` | Newest listings fetched per CabaProp request, and how many pages. |
+| `CABAPROP_REQUEST_DELAY` / `CABAPROP_MIN_INTERVAL_SECONDS` | `5` / `0` | Pacing for CabaProp. |
 | `MERCADOLIBRE_MODE` | `html` | `api` uses the official API and needs `MELI_ACCESS_TOKEN` (unverified). |
 | `ZONAPROP_STRATEGY` | `disabled` | `http` or `provider` — see above. |
 | `CONFIG_FILE` | — | Optional JSON file with the same keys. Environment variables win. |
-| `NEIGHBORHOOD_MAP_FILE` | — | Optional JSON replacing the built-in neighborhood map. |
+| `NEIGHBORHOOD_MAP_FILE` | — | Optional JSON replacing the built-in location map. |
 
 Secrets are read from the environment only; nothing is hardcoded.
 
@@ -231,7 +266,7 @@ Secrets are read from the environment only; nothing is hardcoded.
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
-cp .env.example .env          # then fill in the Telegram values
+cp .env.example .env          # then fill in TELEGRAM_BOT_TOKEN
 
 # one cycle, then exit - the quickest way to see whether the scrapers work
 set -a && . ./.env && set +a
@@ -247,7 +282,7 @@ command poller). Stop with `Ctrl-C`; shutdown is graceful.
 ### With Docker
 
 ```bash
-cp .env.example .env          # fill in the Telegram values
+cp .env.example .env          # fill in TELEGRAM_BOT_TOKEN
 docker compose up -d
 docker compose logs -f
 ```
@@ -274,37 +309,89 @@ The parser tests run against HTML captured from the live sites
 
 ## 8. Changing the search criteria
 
-Edit `.env` (or the `CONFIG_FILE` JSON) and restart:
+Each subscriber sets their own search in the bot with `/settings`: pick cities
+and, within each, barrios (or the whole city), tap property types on or off, pick a maximum rent and a minimum
+area from the buttons or type a number, and optionally narrow by bedrooms and
+furnished. The search is stored per chat in
+the `subscriber_criteria` table, and takes effect from the next cycle.
+
+The sites are asked once per cycle for the union of all active subscribers'
+searches (every neighborhood and type anyone chose, the highest rent limit, the
+smallest area); each subscriber's own filter then picks their listings out of
+that. `deliveries` records which listing went to which chat.
+
+**Bedrooms** (dormitorios) are taken from CabaProp's `bedrooms` field and
+ArgenProp's `dormitorios` card attribute. MercadoLibre's search cards show only
+ambientes, so there bedrooms = ambientes − 1 (a monoambiente has 0). The last
+option, `4+`, means four or more.
+
+**Furnished** (amoblado) comes from CabaProp's MercadoLibre `FURNISHED`
+attribute when the ad has one; otherwise from what the title or description
+says ("amoblado", "amueblado", "con muebles"; "sin muebles", "no amoblado").
+Semi-amoblado counts as furnished.
+
+Both filters only drop listings that state something else. When an ad does not
+say how many bedrooms it has or whether it is furnished, it is still notified
+and the subscriber decides from the ad itself. (Price and area are different:
+a listing whose price or area cannot be read is never notified.)
+
+When a subscriber widens the search (a new neighborhood, a higher rent limit),
+the sites start returning listings that have been there all along. On that
+cycle those are recorded without notifying, just like a source's first run;
+listings the previous search would also have covered are still announced.
+Each subscriber gets listings that appear after they set their search, not the
+backlog.
+
+The configuration below is the **default search**: what a new subscriber starts
+with and what applies to chats that never opened `/settings`. Edit `.env` (or
+the `CONFIG_FILE` JSON) and restart:
 
 ```bash
 MAX_RENT=1500000
 MIN_AREA=45
 PROPERTY_TYPES=Departamento,PH
-NEIGHBORHOODS=Recoleta
+CITIES=CABA,AMBA
+NEIGHBORHOODS=CABA/Recoleta
 ```
 
-**Adding a neighborhood** takes one more step, because each site names and
-codes neighborhoods differently. Copy the built-in map from
-`monitor/neighborhoods.py` into a JSON file, add your entry, and point
-`NEIGHBORHOOD_MAP_FILE` at it:
+**Cities and barrios.** The location map is `monitor/data/locations.json`:
+CABA (its 48 barrios plus Barrio Norte; site sub-zones such as Palermo Soho
+fold into their barrio), AMBA (28 partidos), La Plata, Rosario, Córdoba,
+Mendoza, Mar del Plata, Bariloche, Salta, Neuquén and Tucumán. Outside CABA and
+AMBA the barrios are MercadoLibre's own, plus a few it lists as cities: Gran
+Mendoza's departments (Ciudad de Mendoza, Godoy Cruz, Guaymallén, Las Heras,
+Luján de Cuyo, Maipú), Yerba Buena for Tucumán, and La Plata's Casco Urbano.
+It is generated by `scripts/build_locations.py`, which holds the hand-checked
+tables and fetches each site's own location ids:
 
-```json
-{
-  "Palermo": {
-    "aliases": ["palermo"],
-    "slugs": {"mercadolibre": ["palermo"], "argenprop": ["palermo"]},
-    "ids": {"argenprop": ["12617"]}
-  }
-}
+```bash
+.venv/bin/python scripts/build_locations.py
 ```
 
-- `slugs` are what appears in each site's search URL.
-- `ids` are the site's internal location ids. ArgenProp prints the sub-barrio
-  "Parque Las Heras" on cards it files under `idbarrio=4` (Barrio Norte), so the
-  id — not the printed label — is what gets such listings right.
-- `aliases` only ever match a site's structured location label, never an address.
+Each city and barrio entry has:
 
-A neighborhood that is not in the map is rejected at startup with an
+- `slugs`: what appears in each site's search URL.
+- `ids`: the site's internal location ids. ArgenProp prints the sub-barrio
+  "Parque Las Heras" on cards it files under `barrio:4` (Barrio Norte), so the
+  id — not the printed label — is what gets such listings right. CabaProp
+  splits Barrio Norte into four ids (10, 11, 12, 13), all mapped to it.
+- `aliases`: only ever match a site's structured location label, never an address.
+
+`NEIGHBORHOOD_MAP_FILE` can point at a replacement JSON with the same shape.
+
+What each source covers:
+
+- **MercadoLibre**: every city. Chosen barrios get one query each; a whole city
+  is searched for listings published today, newest pages first, capped by
+  `MERCADOLIBRE_CITY_MAX_PAGES` (a warning is logged when the cap is hit).
+  Many cards outside CABA name only the city ("Necochea 80, Mendoza"); a card
+  found by a barrio's own search, naming no other barrio, is counted in that
+  barrio. In a whole-city search such cards stay without a barrio.
+- **ArgenProp**: CABA only for now (other cities' ids are not mapped yet; it
+  is skipped there with a warning).
+- **CabaProp**: CABA only, by design of the site.
+
+A city or barrio that is not in the map is rejected at startup with an
 explanation, rather than silently matching nothing.
 
 ---
@@ -314,10 +401,11 @@ explanation, rather than silently matching nothing.
 **Nothing arrives at all.** The first log line after startup lists the active
 notification channels; if it warns that none is configured, the credentials are
 missing and messages are only being logged. For Telegram, send `/status` to the
-bot — silence means a wrong token or chat id. For email, a wrong Gmail password
-shows up as `email delivery failed ... 535`, which means you used the account
-password instead of an App Password. Remember that a fresh database stays quiet
-on its first cycle by design.
+bot — silence means a wrong token or the service is not running. For email, a
+wrong Gmail password shows up as `email delivery failed ... 535`, which means you
+used the account password instead of an App Password. Remember that each
+source stays quiet on its first successful cycle by design, including a source
+you enable later on an existing database.
 
 **A source says `blocked`.** ArgenProp's WAF returns `202` with an empty body
 when polled too hard; the source backs itself off automatically. If it persists,

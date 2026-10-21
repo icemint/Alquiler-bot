@@ -197,3 +197,73 @@ def test_a_failed_chunk_leaves_the_rest_pending(database):
 
     assert 0 < sent < 40
     assert len(database.pending_notifications()) == 40 - sent
+
+
+# ---------------------------------------------------------------- telegram fan-out
+
+
+class FakeResponse:
+    def __init__(self, status_code, data):
+        self.status_code = status_code
+        self._data = data
+
+    def json(self):
+        return self._data
+
+
+class FakeSession:
+    """Answers sendMessage per chat id; unknown chats succeed."""
+
+    def __init__(self, responses=None):
+        self.responses = responses or {}
+        self.chats = []
+
+    def post(self, url, json, timeout):
+        self.chats.append(json["chat_id"])
+        return self.responses.get(json["chat_id"], FakeResponse(200, {"ok": True}))
+
+
+def telegram_notifier(database, session):
+    from monitor.services.notification.notifier import TelegramNotifier
+
+    return TelegramNotifier("t", database, session=session)
+
+
+def single_message():
+    from monitor.services.notification.formatter import build_listing_message
+
+    return build_listing_message(make_listing(), DETECTED_AT)
+
+
+def test_telegram_sends_to_every_active_subscriber(database):
+    for chat_id in ("1", "2", "3"):
+        database.add_subscriber(chat_id)
+    database.remove_subscriber("3")
+    session = FakeSession()
+
+    assert telegram_notifier(database, session).send(single_message()) is True
+    assert sorted(session.chats) == ["1", "2"]
+
+
+def test_a_blocked_bot_removes_the_subscriber(database):
+    database.add_subscriber("1")
+    database.add_subscriber("2")
+    blocked = FakeResponse(
+        403, {"ok": False, "description": "Forbidden: bot was blocked by the user"}
+    )
+    session = FakeSession({"2": blocked})
+
+    assert telegram_notifier(database, session).send(single_message()) is True
+    assert database.active_subscribers() == ["1"]
+
+
+def test_delivery_fails_when_no_subscriber_received_it(database):
+    database.add_subscriber("1")
+    session = FakeSession({"1": FakeResponse(500, {"ok": False, "description": "boom"})})
+    assert telegram_notifier(database, session).send(single_message()) is False
+
+
+def test_no_subscribers_does_not_block_the_queue(database):
+    session = FakeSession()
+    assert telegram_notifier(database, session).send(single_message()) is True
+    assert session.chats == []

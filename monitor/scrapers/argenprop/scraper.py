@@ -5,8 +5,11 @@ no JavaScript challenge, but its AWS WAF starts answering ``202`` with an
 empty body once it dislikes the request rate, and that block outlives short
 backoffs. The scraper is therefore deliberately frugal:
 
-* both neighborhoods in one URL - ``/departamentos/alquiler/barrio-norte-o-recoleta``
-  (robots.txt forbids three-way ``-o-`` combinations, two are allowed);
+* one or two chosen barrios go in one URL -
+  ``/departamentos/alquiler/barrio-norte-o-recoleta`` (robots.txt forbids
+  three-way ``-o-`` combinations, two are allowed); with more barrios, or
+  none (a whole city), the city's own search - ``/capital-federal`` - is
+  used and the barrios are picked out of it afterwards;
 * newest-first ordering via ``?orden-masnuevos`` so page 1 holds what is new;
 * one page per property type by default, with a long delay between requests
   and its own polling interval (ARGENPROP_MIN_INTERVAL_SECONDS).
@@ -14,7 +17,7 @@ backoffs. The scraper is therefore deliberately frugal:
 
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import List
 
 from monitor.models.listing import Listing, PropertyType
 from monitor.scrapers.argenprop.parser import BASE_URL, SOURCE, parse_search_page
@@ -31,25 +34,20 @@ ORDER_NEWEST = "orden-masnuevos"
 class ArgenPropScraper(BaseScraper):
     name = SOURCE
 
-    def _slug_for(self, canonical_neighborhood: str) -> Optional[str]:
-        config = self.resolver.mapping.get(canonical_neighborhood, {})
-        slugs = (config.get("slugs") or {}).get(SOURCE) or []  # type: ignore[union-attr]
-        return slugs[0] if slugs else None
-
-    def neighborhood_segment(self) -> Optional[str]:
-        """Combine the configured neighborhoods into one URL segment.
-
-        ArgenProp's robots.txt disallows paths with more than two values
-        combined by ``-o-``, so with three or more neighborhoods we fall back
-        to one request per neighborhood.
-        """
-        slugs = [self._slug_for(name) for name in self.config.criteria.neighborhoods]
-        slugs = [slug for slug in slugs if slug]
-        if not slugs:
-            return None
-        if len(slugs) > 2:
-            return None
-        return "-o-".join(sorted(slugs))
+    def segments(self) -> List[str]:
+        """The location part of each search URL, one per city searched."""
+        segments: List[str] = []
+        for city in self.criteria.cities:
+            barrios = self.criteria.barrios_in(city)
+            slugs = [self.resolver.slugs(SOURCE, city, barrio)[:1] for barrio in barrios]
+            if barrios and all(slugs) and len(slugs) <= 2:
+                segments.append("-o-".join(sorted(slug[0] for slug in slugs)))
+                continue
+            city_slugs = self.resolver.slugs(SOURCE, city)
+            if not city_slugs:
+                self.logger.warning("no %s search for %s", SOURCE, city)
+            segments.extend(slug for slug in city_slugs if slug not in segments)
+        return segments
 
     def build_url(
         self, property_type: PropertyType, neighborhood_segment: str, page: int = 1
@@ -62,19 +60,9 @@ class ArgenPropScraper(BaseScraper):
         return url
 
     def collect(self) -> List[Listing]:
-        segments: List[str] = []
-        combined = self.neighborhood_segment()
-        if combined:
-            segments.append(combined)
-        else:
-            for name in self.config.criteria.neighborhoods:
-                slug = self._slug_for(name)
-                if slug:
-                    segments.append(slug)
-
         listings: List[Listing] = []
-        for segment in segments:
-            for property_type in self.config.criteria.property_types:
+        for segment in self.segments():
+            for property_type in self.criteria.property_types:
                 if property_type not in TYPE_SLUGS:
                     continue
                 for page in range(1, self.source_config.max_pages + 1):

@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from monitor.models.listing import PropertyType
-from monitor.neighborhoods import NeighborhoodResolver
+from monitor.neighborhoods import KEY_SEPARATOR, NeighborhoodResolver, barrio_key, split_key
 
 DEFAULT_USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
@@ -88,27 +88,163 @@ def _list(name: str, default: List[str]) -> List[str]:
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
+# The last bedroom option means "this many or more".
+BEDROOMS_OR_MORE = 4
+FURNISHED_OPTIONS = ("any", "yes", "no")
+
+
 @dataclass
 class SearchCriteria:
     max_rent: float = 1_000_000.0
     min_area_m2: float = 50.0
     currency: str = "ARS"
-    neighborhoods: List[str] = field(default_factory=lambda: ["Recoleta", "Barrio Norte"])
+    # Cities searched, and barrios chosen within them as "City/Barrio" keys.
+    # A city with no barrio chosen is searched as a whole.
+    cities: List[str] = field(default_factory=lambda: ["CABA"])
+    neighborhoods: List[str] = field(default_factory=lambda: ["CABA/Recoleta", "CABA/Barrio Norte"])
     property_types: List[PropertyType] = field(
         default_factory=lambda: [PropertyType.DEPARTAMENTO, PropertyType.CASA, PropertyType.PH]
     )
     # Expensas are explicitly NOT part of the price filter.
     include_expensas_in_price: bool = False
+    # Accepted bedroom counts (0 = monoambiente, BEDROOMS_OR_MORE = that or
+    # more). Empty means any.
+    bedrooms: List[int] = field(default_factory=list)
+    # "yes": only listings that say they are furnished; "no": drop those
+    # that say so; "any": no filter.
+    furnished: str = "any"
+
+    def __post_init__(self) -> None:
+        # A bare barrio name is a CABA barrio (searches stored before cities
+        # existed), and every chosen barrio's city is part of the search.
+        self.neighborhoods = [
+            barrio_key(location.city, location.neighborhood or "")
+            for location in map(split_key, self.neighborhoods)
+        ]
+        for key in self.neighborhoods:
+            if split_key(key).city not in self.cities:
+                self.cities.append(split_key(key).city)
+
+    def barrios_in(self, city: str) -> List[str]:
+        """The barrios chosen in ``city``; empty means the whole city."""
+        prefix = city + KEY_SEPARATOR
+        return [key[len(prefix) :] for key in self.neighborhoods if key.startswith(prefix)]
+
+    def describe_location(self) -> str:
+        return "; ".join(
+            "{0}: {1}".format(city, ", ".join(self.barrios_in(city)) or "all barrios")
+            for city in self.cities
+        )
 
     def describe(self) -> str:
         # Only the amount takes Argentine thousands separators - applying the
         # replacement to the whole sentence would also eat the list commas.
         price = f"{self.max_rent:,.0f}".replace(",", ".")
         types = "/".join(t.value for t in self.property_types)
-        hoods = ", ".join(self.neighborhoods)
-        return (
+        hoods = self.describe_location()
+        text = (
             f"alquiler | {types} | {hoods} | area >= {self.min_area_m2:g} m2 | "
             f"price <= {price} {self.currency} (expensas excluded)"
+        )
+        if self.bedrooms:
+            text += " | bedrooms " + ",".join(str(b) for b in self.bedrooms)
+        if self.furnished != "any":
+            text += f" | furnished={self.furnished}"
+        return text
+
+    def to_dict(self) -> Dict[str, Any]:
+        """The part a subscriber can change, as stored in the database."""
+        return {
+            "max_rent": self.max_rent,
+            "min_area_m2": self.min_area_m2,
+            "cities": list(self.cities),
+            "neighborhoods": list(self.neighborhoods),
+            "property_types": [t.value for t in self.property_types],
+            "bedrooms": list(self.bedrooms),
+            "furnished": self.furnished,
+        }
+
+    def with_changes(self, data: Dict[str, Any]) -> SearchCriteria:
+        """A copy with the stored fields applied; anything absent or invalid
+        keeps this criteria's value, so an old row never breaks a search."""
+        types: List[PropertyType] = []
+        for value in data.get("property_types") or []:
+            try:
+                types.append(PropertyType(value))
+            except ValueError:
+                continue
+        try:
+            max_rent = float(data.get("max_rent") or self.max_rent)
+            min_area = float(data.get("min_area_m2") or self.min_area_m2)
+        except (TypeError, ValueError):
+            max_rent, min_area = self.max_rent, self.min_area_m2
+        # An empty list is a real choice ("any"), so only a missing key
+        # keeps the current value.
+        bedrooms = list(self.bedrooms)
+        if isinstance(data.get("bedrooms"), list):
+            bedrooms = sorted(
+                {b for b in data["bedrooms"] if isinstance(b, int) and 0 <= b <= BEDROOMS_OR_MORE}
+            )
+        furnished = data.get("furnished")
+        # Searches stored before cities existed hold bare CABA barrio names.
+        if "neighborhoods" in data or "cities" in data:
+            neighborhoods = [
+                barrio_key(location.city, location.neighborhood or "")
+                for location in map(split_key, data.get("neighborhoods") or [])
+            ]
+            cities = list(data.get("cities") or [])
+            for key in neighborhoods:
+                city = split_key(key).city
+                if city not in cities:
+                    cities.append(city)
+        else:
+            neighborhoods, cities = list(self.neighborhoods), list(self.cities)
+        return SearchCriteria(
+            max_rent=max_rent,
+            min_area_m2=min_area,
+            currency=self.currency,
+            cities=cities or list(self.cities),
+            neighborhoods=neighborhoods if cities else list(self.neighborhoods),
+            property_types=types or list(self.property_types),
+            include_expensas_in_price=self.include_expensas_in_price,
+            bedrooms=bedrooms,
+            furnished=furnished if furnished in FURNISHED_OPTIONS else self.furnished,
+        )
+
+    @staticmethod
+    def union(searches: List[SearchCriteria]) -> SearchCriteria:
+        """The widest search covering every one given: what to ask the sites
+        for, so each subscriber's own filter still sees all candidates."""
+        first = searches[0]
+        cities: List[str] = []
+        types: List[PropertyType] = []
+        for search in searches:
+            cities.extend(c for c in search.cities if c not in cities)
+            types.extend(t for t in search.property_types if t not in types)
+        # A city anyone searches as a whole is searched as a whole.
+        whole = {c for search in searches for c in search.cities if not search.barrios_in(c)}
+        neighborhoods: List[str] = []
+        for search in searches:
+            neighborhoods.extend(
+                key
+                for key in search.neighborhoods
+                if key not in neighborhoods and split_key(key).city not in whole
+            )
+        # One subscriber without a bedroom filter makes the union unfiltered.
+        bedrooms: List[int] = []
+        if all(search.bedrooms for search in searches):
+            bedrooms = sorted({b for search in searches for b in search.bedrooms})
+        furnished = {search.furnished for search in searches}
+        return SearchCriteria(
+            max_rent=max(s.max_rent for s in searches),
+            min_area_m2=min(s.min_area_m2 for s in searches),
+            currency=first.currency,
+            cities=cities,
+            neighborhoods=neighborhoods,
+            property_types=types,
+            include_expensas_in_price=first.include_expensas_in_price,
+            bedrooms=bedrooms,
+            furnished=furnished.pop() if len(furnished) == 1 else "any",
         )
 
 
@@ -125,7 +261,9 @@ class TelegramConfig:
 
     @property
     def configured(self) -> bool:
-        return bool(self.bot_token and self.chat_id)
+        # Recipients are the chats that sent /start; chat_id only seeds the
+        # owner's chat as the first subscriber.
+        return bool(self.bot_token)
 
 
 @dataclass
@@ -210,19 +348,38 @@ def load_config() -> Config:
     neighborhoods = _list("NEIGHBORHOODS", ["Recoleta", "Barrio Norte"])
     canonical: List[str] = []
     for name in neighborhoods:
-        resolved = resolver.from_label(name)
+        # "Córdoba/Nueva Córdoba", or a bare name: a CABA barrio, as before
+        # cities existed, else a barrio of exactly one city.
+        resolved = resolver.resolve_key(name)
+        if not resolved and KEY_SEPARATOR not in name:
+            location = resolver.from_label(name)
+            resolved = (
+                barrio_key(location.city, location.neighborhood)
+                if location and location.neighborhood
+                else None
+            )
         if not resolved:
             raise ConfigError(
-                f"Neighborhood {name!r} is not in the neighborhood map. Add it to "
-                "NEIGHBORHOOD_MAP_FILE with the per-source slugs first."
+                f"Neighborhood {name!r} is not in the location map (or names barrios in "
+                "several cities: write it as City/Barrio). See monitor/data/locations.json."
             )
         if resolved not in canonical:
             canonical.append(resolved)
+    cities = _list("CITIES", [])
+    for city in cities:
+        if city not in resolver.cities():
+            raise ConfigError(
+                f"City {city!r} is not in the location map; known: {', '.join(resolver.cities())}"
+            )
+    for key in canonical:
+        if split_key(key).city not in cities:
+            cities.append(split_key(key).city)
 
     criteria = SearchCriteria(
         max_rent=_float("MAX_RENT", 1_000_000.0),
         min_area_m2=_float("MIN_AREA", 50.0),
         currency=_str("CURRENCY", "ARS").upper(),
+        cities=cities or ["CABA"],
         neighborhoods=canonical,
         property_types=_parse_property_types(
             _list("PROPERTY_TYPES", ["Departamento", "Casa", "PH"])
@@ -260,14 +417,20 @@ def load_config() -> Config:
     interval_minutes = _float("CHECK_INTERVAL", 5.0)
     check_interval_seconds = _int("CHECK_INTERVAL_SECONDS", int(interval_minutes * 60))
 
-    enabled_sources = [s.lower() for s in _list("SOURCES", ["mercadolibre", "argenprop"])]
+    enabled_sources = [
+        s.lower() for s in _list("SOURCES", ["mercadolibre", "argenprop", "cabaprop"])
+    ]
     sources = {
         "mercadolibre": SourceConfig(
             name="mercadolibre",
             enabled="mercadolibre" in enabled_sources,
             max_pages=_int("MERCADOLIBRE_MAX_PAGES", 3),
             request_delay_seconds=_float("MERCADOLIBRE_REQUEST_DELAY", 2.0),
-            options={"mode": _str("MERCADOLIBRE_MODE", "html")},
+            options={
+                "mode": _str("MERCADOLIBRE_MODE", "html"),
+                # Pages of a whole city's "published today" search per type.
+                "city_max_pages": _int("MERCADOLIBRE_CITY_MAX_PAGES", 5),
+            },
         ),
         "argenprop": SourceConfig(
             name="argenprop",
@@ -277,6 +440,15 @@ def load_config() -> Config:
             min_interval_seconds=_int("ARGENPROP_MIN_INTERVAL_SECONDS", 600),
             max_pages=_int("ARGENPROP_MAX_PAGES", 1),
             request_delay_seconds=_float("ARGENPROP_REQUEST_DELAY", 20.0),
+        ),
+        "cabaprop": SourceConfig(
+            name="cabaprop",
+            enabled="cabaprop" in enabled_sources,
+            # One JSON request per cycle covers every new listing (newest first).
+            min_interval_seconds=_int("CABAPROP_MIN_INTERVAL_SECONDS", 0),
+            max_pages=_int("CABAPROP_MAX_PAGES", 1),
+            request_delay_seconds=_float("CABAPROP_REQUEST_DELAY", 5.0),
+            options={"page_size": _int("CABAPROP_PAGE_SIZE", 30)},
         ),
         "zonaprop": SourceConfig(
             name="zonaprop",
