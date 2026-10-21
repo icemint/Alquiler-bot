@@ -113,6 +113,9 @@ class SearchCriteria:
     # "yes": only listings that say they are furnished; "no": drop those
     # that say so; "any": no filter.
     furnished: str = "any"
+    # Listings priced in USD, converted at the day's rate and held against
+    # max_rent. Off: only listings in ``currency``.
+    include_usd: bool = True
 
     def __post_init__(self) -> None:
         # A bare barrio name is a CABA barrio (searches stored before cities
@@ -150,6 +153,8 @@ class SearchCriteria:
             text += " | bedrooms " + ",".join(str(b) for b in self.bedrooms)
         if self.furnished != "any":
             text += f" | furnished={self.furnished}"
+        if not self.include_usd:
+            text += " | no USD"
         return text
 
     def to_dict(self) -> Dict[str, Any]:
@@ -162,6 +167,7 @@ class SearchCriteria:
             "property_types": [t.value for t in self.property_types],
             "bedrooms": list(self.bedrooms),
             "furnished": self.furnished,
+            "include_usd": self.include_usd,
         }
 
     def with_changes(self, data: Dict[str, Any]) -> SearchCriteria:
@@ -209,6 +215,11 @@ class SearchCriteria:
             include_expensas_in_price=self.include_expensas_in_price,
             bedrooms=bedrooms,
             furnished=furnished if furnished in FURNISHED_OPTIONS else self.furnished,
+            include_usd=(
+                data["include_usd"]
+                if isinstance(data.get("include_usd"), bool)
+                else self.include_usd
+            ),
         )
 
     @staticmethod
@@ -245,6 +256,7 @@ class SearchCriteria:
             include_expensas_in_price=first.include_expensas_in_price,
             bedrooms=bedrooms,
             furnished=furnished.pop() if len(furnished) == 1 else "any",
+            include_usd=any(search.include_usd for search in searches),
         )
 
 
@@ -316,6 +328,9 @@ class Config:
     # instead of firing dozens of notifications at once.
     notify_on_first_run: bool = False
     neighborhood_map_file: Optional[str] = None
+    # Which dolarapi.com quote converts USD listings; usd_ars_rate fixes it.
+    usd_rate_source: str = "oficial"
+    usd_ars_rate: Optional[float] = None
 
     @property
     def resolver(self) -> NeighborhoodResolver:
@@ -384,6 +399,7 @@ def load_config() -> Config:
         property_types=_parse_property_types(
             _list("PROPERTY_TYPES", ["Departamento", "Casa", "PH"])
         ),
+        include_usd=_bool("INCLUDE_USD", True),
     )
 
     telegram = TelegramConfig(
@@ -475,4 +491,6 @@ def load_config() -> Config:
         log_format=_str("LOG_FORMAT", "text").lower(),
         notify_on_first_run=_bool("NOTIFY_ON_FIRST_RUN", False),
         neighborhood_map_file=_raw("NEIGHBORHOOD_MAP_FILE"),
+        usd_rate_source=_str("USD_RATE_SOURCE", "oficial").lower(),
+        usd_ars_rate=_float("USD_ARS_RATE", 0.0) or None,
     )

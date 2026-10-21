@@ -14,7 +14,7 @@ import time
 from email.message import EmailMessage
 from email.utils import formataddr
 from functools import partial
-from typing import Dict, List, Optional, Set
+from typing import Callable, Dict, List, Optional, Set
 
 import requests
 
@@ -264,11 +264,13 @@ class NotificationService:
         notifier: Notifier,
         config: TelegramConfig,
         default_criteria: Optional[SearchCriteria] = None,
+        usd_rate: Optional[Callable[[], Optional[float]]] = None,
     ) -> None:
         self.database = database
         self.notifier = notifier
         self.config = config
         self.default_criteria = default_criteria or SearchCriteria()
+        self.usd_rate = usd_rate
 
     def notify_pending(self) -> int:
         pending: List[StoredListing] = self.database.pending_notifications(
@@ -305,7 +307,7 @@ class NotificationService:
         # the deliveries table keeps the others from getting them twice.
         unfinished: Set[str] = set()
         for chat_id, criteria in searches.items():
-            listing_filter = ListingFilter(criteria)
+            listing_filter = ListingFilter(criteria, self.usd_rate)
             already = set(self.database.delivered_keys(chat_id, keys))
             mine = [
                 item
@@ -325,16 +327,23 @@ class NotificationService:
         """Send ``items`` in order, as a digest when there are many; stops at
         the first failure. Returns the keys that went out."""
         sent: List[str] = []
+        # Dollar rents are shown in pesos too; the rate is only looked up
+        # when there is one.
+        rate = (
+            self.usd_rate()
+            if self.usd_rate and any(item.listing.currency == "USD" for item in items)
+            else None
+        )
         if len(items) > self.config.group_threshold:
-            for chunk in chunk_for_group(items, MAX_MESSAGE_LENGTH):
-                if not send(build_group_message(chunk)):
+            for chunk in chunk_for_group(items, MAX_MESSAGE_LENGTH, rate):
+                if not send(build_group_message(chunk, usd_rate=rate)):
                     break
                 sent.extend(item.dedupe_key for item in chunk)
                 time.sleep(0.5)
             return sent
 
         for item in items:
-            if not send(build_listing_message(item.listing, item.first_seen_at)):
+            if not send(build_listing_message(item.listing, item.first_seen_at, rate)):
                 break
             sent.append(item.dedupe_key)
             time.sleep(0.5)  # stay well inside Telegram's rate limits
