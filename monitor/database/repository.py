@@ -458,3 +458,53 @@ class Database:
                 "SELECT COUNT(*) AS n FROM subscribers WHERE active = 1"
             ).fetchone()
         return int(row["n"])
+
+    # ------------------------------------------------------------------ searches
+
+    def get_criteria(self, chat_id: str) -> Optional[Dict[str, Any]]:
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT criteria FROM subscriber_criteria WHERE chat_id = ?", (chat_id,)
+            ).fetchone()
+        if row is None:
+            return None
+        try:
+            data = json.loads(row["criteria"])
+        except ValueError:
+            return None
+        return data if isinstance(data, dict) else None
+
+    def set_criteria(self, chat_id: str, criteria: Dict[str, Any]) -> None:
+        with self._lock:
+            self._conn.execute(
+                "INSERT INTO subscriber_criteria (chat_id, criteria, updated_at) VALUES (?, ?, ?) "
+                "ON CONFLICT(chat_id) DO UPDATE SET criteria = excluded.criteria, "
+                "updated_at = excluded.updated_at",
+                (chat_id, json.dumps(criteria, ensure_ascii=False), to_iso(utcnow())),
+            )
+            self._conn.commit()
+
+    # ------------------------------------------------------------------ deliveries
+
+    def delivered_keys(self, chat_id: str, dedupe_keys: List[str]) -> List[str]:
+        if not dedupe_keys:
+            return []
+        placeholders = ",".join("?" for _ in dedupe_keys)
+        with self._lock:
+            rows = self._conn.execute(
+                f"SELECT dedupe_key FROM deliveries WHERE chat_id = ? "
+                f"AND dedupe_key IN ({placeholders})",
+                (chat_id, *dedupe_keys),
+            ).fetchall()
+        return [row["dedupe_key"] for row in rows]
+
+    def record_deliveries(self, chat_id: str, dedupe_keys: List[str]) -> None:
+        if not dedupe_keys:
+            return
+        timestamp = to_iso(utcnow())
+        with self._lock:
+            self._conn.executemany(
+                "INSERT OR IGNORE INTO deliveries (chat_id, dedupe_key, sent_at) VALUES (?, ?, ?)",
+                [(chat_id, key, timestamp) for key in dedupe_keys],
+            )
+            self._conn.commit()

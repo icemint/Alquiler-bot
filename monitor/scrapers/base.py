@@ -193,6 +193,9 @@ class BaseScraper(abc.ABC):
         http: HttpClient,
     ) -> None:
         self.config = config
+        # What to ask the site for. The scheduler replaces it every cycle
+        # with the union of all subscribers' searches.
+        self.criteria = config.criteria
         self.source_config = source_config
         self.resolver = resolver
         self.http = http

@@ -111,6 +111,57 @@ class SearchCriteria:
             f"price <= {price} {self.currency} (expensas excluded)"
         )
 
+    def to_dict(self) -> Dict[str, Any]:
+        """The part a subscriber can change, as stored in the database."""
+        return {
+            "max_rent": self.max_rent,
+            "min_area_m2": self.min_area_m2,
+            "neighborhoods": list(self.neighborhoods),
+            "property_types": [t.value for t in self.property_types],
+        }
+
+    def with_changes(self, data: Dict[str, Any]) -> SearchCriteria:
+        """A copy with the stored fields applied; anything absent or invalid
+        keeps this criteria's value, so an old row never breaks a search."""
+        types: List[PropertyType] = []
+        for value in data.get("property_types") or []:
+            try:
+                types.append(PropertyType(value))
+            except ValueError:
+                continue
+        try:
+            max_rent = float(data.get("max_rent") or self.max_rent)
+            min_area = float(data.get("min_area_m2") or self.min_area_m2)
+        except (TypeError, ValueError):
+            max_rent, min_area = self.max_rent, self.min_area_m2
+        return SearchCriteria(
+            max_rent=max_rent,
+            min_area_m2=min_area,
+            currency=self.currency,
+            neighborhoods=list(data.get("neighborhoods") or self.neighborhoods),
+            property_types=types or list(self.property_types),
+            include_expensas_in_price=self.include_expensas_in_price,
+        )
+
+    @staticmethod
+    def union(searches: List[SearchCriteria]) -> SearchCriteria:
+        """The widest search covering every one given: what to ask the sites
+        for, so each subscriber's own filter still sees all candidates."""
+        first = searches[0]
+        neighborhoods: List[str] = []
+        types: List[PropertyType] = []
+        for search in searches:
+            neighborhoods.extend(n for n in search.neighborhoods if n not in neighborhoods)
+            types.extend(t for t in search.property_types if t not in types)
+        return SearchCriteria(
+            max_rent=max(s.max_rent for s in searches),
+            min_area_m2=min(s.min_area_m2 for s in searches),
+            currency=first.currency,
+            neighborhoods=neighborhoods,
+            property_types=types,
+            include_expensas_in_price=first.include_expensas_in_price,
+        )
+
 
 @dataclass
 class TelegramConfig:

@@ -74,3 +74,21 @@ CREATE TABLE IF NOT EXISTS subscribers (
     subscribed_at  TEXT    NOT NULL,
     active         INTEGER NOT NULL DEFAULT 1
 );
+
+-- A subscriber's own search, as JSON (SearchCriteria.to_dict). No row means
+-- the default search from the configuration.
+CREATE TABLE IF NOT EXISTS subscriber_criteria (
+    chat_id     TEXT PRIMARY KEY,
+    criteria    TEXT NOT NULL,
+    updated_at  TEXT NOT NULL
+);
+
+-- Which listing went to which chat, so each subscriber gets a listing once
+-- and a failed delivery to one chat can be retried without resending it to
+-- the others.
+CREATE TABLE IF NOT EXISTS deliveries (
+    chat_id     TEXT NOT NULL,
+    dedupe_key  TEXT NOT NULL,
+    sent_at     TEXT NOT NULL,
+    PRIMARY KEY (chat_id, dedupe_key)
+);

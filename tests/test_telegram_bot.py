@@ -106,3 +106,76 @@ def test_stats_counts_subscribers(bot):
     bot.handle_command("/start", chat_id="1")
     bot.handle_command("/start", chat_id="2")
     assert "Subscribers: 2" in bot.handle_command("/stats")
+
+
+# ---------------------------------------------------------------- settings
+
+
+def test_settings_shows_the_chat_search_with_buttons(bot):
+    reply = bot.reply_to_command("/settings", chat_id="7")
+    assert "Your search" in reply.text
+    assert "Recoleta, Barrio Norte" in reply.text
+    data = [button["callback_data"] for row in reply.keyboard for button in row]
+    assert {"s:hoods", "s:types", "s:rent", "s:area", "s:done"} <= set(data)
+
+
+def test_toggling_a_neighborhood_saves_it_for_that_chat_only(bot):
+    reply = bot.handle_callback("7", "s:hoods")
+    labels = [button["text"] for row in reply.keyboard for button in row]
+    assert "✅ Recoleta" in labels
+
+    index = bot.neighborhoods.index("Barrio Norte")
+    reply = bot.handle_callback("7", f"h:{index}")
+    assert "▫️ Barrio Norte" in [button["text"] for row in reply.keyboard for button in row]
+    assert bot._criteria("7").neighborhoods == ["Recoleta"]
+    assert bot._criteria("8").neighborhoods == ["Recoleta", "Barrio Norte"]
+
+
+def test_the_last_neighborhood_cannot_be_removed(bot):
+    bot.handle_callback("7", "h:{0}".format(bot.neighborhoods.index("Barrio Norte")))
+    reply = bot.handle_callback("7", "h:{0}".format(bot.neighborhoods.index("Recoleta")))
+    assert reply.toast
+    assert bot._criteria("7").neighborhoods == ["Recoleta"]
+
+
+def test_toggling_property_types(bot):
+    bot.handle_callback("7", "t:Casa")
+    assert [t.value for t in bot._criteria("7").property_types] == ["Departamento", "PH"]
+    bot.handle_callback("7", "t:Casa")
+    assert "Casa" in [t.value for t in bot._criteria("7").property_types]
+
+
+def test_rent_preset_button(bot):
+    reply = bot.handle_callback("7", "r:1500000")
+    assert "Max rent updated" in reply.text
+    assert bot._criteria("7").max_rent == 1_500_000
+
+
+def test_typed_rent_after_choosing_max_rent(bot):
+    bot.handle_callback("7", "s:rent")
+    reply = bot.handle_text("7", "1.250.000 ARS")
+    assert "1.250.000" in reply.text
+    assert bot._criteria("7").max_rent == 1_250_000
+    # The prompt is answered: further text is not taken as a price.
+    assert "/settings" in bot.handle_text("7", "900000").text
+    assert bot._criteria("7").max_rent == 1_250_000
+
+
+def test_typed_area_out_of_range_is_refused(bot):
+    bot.handle_callback("7", "s:area")
+    assert "between" in bot.handle_text("7", "5").text
+    assert bot._criteria("7").min_area_m2 == 50
+    bot.handle_text("7", "65 m2")
+    assert bot._criteria("7").min_area_m2 == 65
+
+
+def test_leaving_the_prompt_cancels_typed_input(bot):
+    bot.handle_callback("7", "s:rent")
+    bot.handle_callback("7", "s:menu")
+    assert "/settings" in bot.handle_text("7", "900000").text
+    assert bot._criteria("7").max_rent == 1_000_000
+
+
+def test_start_describes_the_chat_own_search(bot):
+    bot.handle_callback("7", "r:750000")
+    assert "750.000 ARS" in bot.handle_command("/start", chat_id="7")
