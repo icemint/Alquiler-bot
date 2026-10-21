@@ -117,6 +117,13 @@ def test_barrios_of_other_cities_and_whole_cities_can_be_configured(monkeypatch)
     assert criteria.cities == ["CABA", "AMBA"]
 
 
+def test_a_bare_name_is_a_caba_barrio_else_the_one_city_having_it(monkeypatch):
+    monkeypatch.setenv("NEIGHBORHOODS", "Barrio Norte,Nueva Córdoba")
+    criteria = load_config().criteria
+    assert criteria.neighborhoods == ["CABA/Barrio Norte", "Córdoba/Nueva Córdoba"]
+    assert criteria.cities == ["CABA", "Córdoba"]
+
+
 def test_an_unknown_city_is_rejected(monkeypatch):
     monkeypatch.setenv("CITIES", "Atlantis")
     with pytest.raises(ConfigError):

@@ -348,10 +348,10 @@ def load_config() -> Config:
     neighborhoods = _list("NEIGHBORHOODS", ["Recoleta", "Barrio Norte"])
     canonical: List[str] = []
     for name in neighborhoods:
-        # "Córdoba/Nueva Córdoba", or a bare name that is a barrio of one city.
-        if KEY_SEPARATOR in name:
-            resolved = resolver.resolve_key(name)
-        else:
+        # "Córdoba/Nueva Córdoba", or a bare name: a CABA barrio, as before
+        # cities existed, else a barrio of exactly one city.
+        resolved = resolver.resolve_key(name)
+        if not resolved and KEY_SEPARATOR not in name:
             location = resolver.from_label(name)
             resolved = (
                 barrio_key(location.city, location.neighborhood)

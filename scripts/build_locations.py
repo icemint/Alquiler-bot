@@ -8,9 +8,11 @@ Run it when a site changes its location taxonomy:
 What comes from where:
 
 * MercadoLibre: the "Barrios" / "Ciudades" facet of a city's search page
-  lists every location it knows, with the URL path to search it. Its own
-  sub-zones (Palermo Soho, Belgrano R, ...) are folded into the barrio that
-  contains them, so the bot's menu stays a readable list.
+  lists every location it knows, with the URL path to search it. In CABA and
+  AMBA its sub-zones (Palermo Soho, Belgrano R, ...) are folded into the
+  barrio that contains them, so the bot's menu stays a readable list. Other
+  cities take MercadoLibre's barrios as they are (BARRIOS is None), plus the
+  hand-made ones in EXTRA_BARRIOS.
 * CabaProp: /api/v1/utils/barrios-obj (CABA only), folded the same way.
 * ArgenProp: its WAF does not tolerate crawling, so its slugs and ids below
   were collected by hand from single search pages (2026-10-21). Barrios
@@ -174,8 +176,35 @@ BARRIOS: Dict[str, Dict[str, List[str]]] = {
         "Tres de Febrero": ["Caseros"],
         "Vicente López": [],
     },
-    # Barrios come with the other cities; until then it is searched whole.
-    "La Plata": {},
+    # None: every barrio MercadoLibre lists for the city.
+    "La Plata": None,
+    "Rosario": None,
+    "Córdoba": None,
+    "Mendoza": {},
+    "Mar del Plata": None,
+    "Bariloche": None,
+    "Salta": None,
+    "Neuquén": None,
+    "Tucumán": None,
+}
+
+# Barrios MercadoLibre does not list as such: city -> {barrio: search path}.
+# Their cards name the city only, so their listings are recognised by the
+# search that found them (see mercadolibre/parser.py).
+EXTRA_BARRIOS: Dict[str, Dict[str, str]] = {
+    # MercadoLibre's "La Plata" barrio: the city proper, inside the diagonals.
+    "La Plata": {"Casco Urbano": "bsas-gba-sur/la-plata/la-plata"},
+    # Gran Mendoza: the capital and the departments around it, each a city
+    # of its own on MercadoLibre.
+    "Mendoza": {
+        "Ciudad de Mendoza": "mendoza/mendoza",
+        "Godoy Cruz": "mendoza/godoy-cruz",
+        "Guaymallén": "mendoza/guaymallen",
+        "Las Heras": "mendoza/las-heras",
+        "Luján de Cuyo": "mendoza/lujan-de-cuyo",
+        "Maipú": "mendoza/maipu",
+    },
+    "Tucumán": {"Yerba Buena": "tucuman/yerba-buena"},
 }
 
 CITIES: Dict[str, Dict[str, Any]] = {
@@ -197,13 +226,21 @@ CITIES: Dict[str, Dict[str, Any]] = {
         "argenprop": {"slugs": [], "ids": []},
         "cabaprop": False,
     },
-    "La Plata": {
-        "aliases": [],
-        "mercadolibre": ["bsas-gba-sur/la-plata"],
-        "argenprop": {"slugs": [], "ids": []},
-        "cabaprop": False,
+    "La Plata": {"aliases": [], "mercadolibre": ["bsas-gba-sur/la-plata"]},
+    "Rosario": {"aliases": [], "mercadolibre": ["santa-fe/rosario"]},
+    "Córdoba": {"aliases": [], "mercadolibre": ["cordoba/cordoba"]},
+    "Mendoza": {"aliases": [], "mercadolibre": list(EXTRA_BARRIOS["Mendoza"].values())},
+    "Mar del Plata": {"aliases": [], "mercadolibre": ["bsas-costa-atlantica/mar-del-plata"]},
+    "Bariloche": {"aliases": ["San Carlos de Bariloche"], "mercadolibre": ["rio-negro/bariloche"]},
+    "Salta": {"aliases": [], "mercadolibre": ["salta/salta"]},
+    "Neuquén": {"aliases": [], "mercadolibre": ["neuquen/neuquen"]},
+    "Tucumán": {
+        "aliases": ["San Miguel de Tucumán"],
+        "mercadolibre": ["tucuman/san-miguel-de-tucuman", "tucuman/yerba-buena"],
     },
 }
+# MercadoLibre's catch-all, not a barrio.
+NOT_A_BARRIO = {"otros barrios"}
 
 # ArgenProp, collected by hand (see the module docstring).
 ARGENPROP_SLUGS = {
@@ -246,7 +283,7 @@ ARGENPROP_IDS = {
 def fold(city: str, name: str) -> Optional[str]:
     """The canonical barrio a site's location name belongs to."""
     wanted = normalize_text(name)
-    for barrio, aliases in BARRIOS[city].items():
+    for barrio, aliases in (BARRIOS[city] or {}).items():
         if wanted == normalize_text(barrio) or wanted in {normalize_text(a) for a in aliases}:
             return barrio
     return None
@@ -282,20 +319,29 @@ def meli_path(url: str) -> str:
 def build() -> Dict[str, Any]:
     cities: Dict[str, Any] = {}
     unknown: List[str] = []
+    # A barrio must never be named like a city: the city is read first.
+    city_names = {
+        normalize_text(name) for city, spec in CITIES.items() for name in [city, *spec["aliases"]]
+    }
 
     for city, barrios in BARRIOS.items():
         spec = CITIES[city]
         entries: Dict[str, Dict[str, Any]] = {
             barrio: {"aliases": list(aliases), "slugs": {}, "ids": {}}
-            for barrio, aliases in barrios.items()
+            for barrio, aliases in (barrios or {}).items()
         }
 
-        facet = "neighborhood" if city == "CABA" else "city"
-        for zone in spec["mercadolibre"] if barrios else []:
+        facet = "city" if city == "AMBA" else "neighborhood"
+        zones = spec["mercadolibre"] if barrios is None or barrios else []
+        for zone in zones:
             for value in meli_facet(zone, facet):
-                barrio = fold(city, value["name"])
-                if barrio is None and normalize_text(value["name"]) in map(normalize_text, CITIES):
+                name = normalize_text(value["name"])
+                if name in city_names or name in NOT_A_BARRIO:
                     continue  # a city of its own (La Plata sits in GBA Sur)
+                barrio = fold(city, value["name"])
+                if barrio is None and barrios is None:
+                    barrio = value["name"]
+                    entries.setdefault(barrio, {"aliases": [], "slugs": {}, "ids": {}})
                 if barrio is None:
                     unknown.append(f"mercadolibre {city}: {value['name']}")
                     continue
@@ -308,7 +354,10 @@ def build() -> Dict[str, Any]:
                     if value["name"] not in aliases:
                         aliases.append(value["name"])
 
-        if spec["cabaprop"]:
+        for barrio, path in EXTRA_BARRIOS.get(city, {}).items():
+            entries[barrio] = {"aliases": [], "slugs": {"mercadolibre": [path]}, "ids": {}}
+
+        if spec.get("cabaprop"):
             response = requests.get(
                 CABAPROP_BARRIOS, headers={"User-Agent": DEFAULT_USER_AGENT}, timeout=30
             )
@@ -325,14 +374,15 @@ def build() -> Dict[str, Any]:
         for barrio, ids in ARGENPROP_IDS.get(city, {}).items():
             entries[barrio]["ids"]["argenprop"] = list(ids)
 
+        argenprop = spec.get("argenprop") or {}
         cities[city] = {
             "aliases": spec["aliases"],
             "slugs": {
                 "mercadolibre": spec["mercadolibre"],
-                "argenprop": spec["argenprop"]["slugs"],
+                "argenprop": argenprop.get("slugs", []),
             },
-            "ids": {"argenprop": spec["argenprop"]["ids"]},
-            "barrios": entries,
+            "ids": {"argenprop": argenprop.get("ids", [])},
+            "barrios": dict(sorted(entries.items(), key=lambda item: normalize_text(item[0]))),
         }
 
     for line in unknown:
