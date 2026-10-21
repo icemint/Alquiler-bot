@@ -62,6 +62,10 @@ class Listing:
     currency: Optional[str] = None
     area_m2: Optional[float] = None
     rooms: Optional[int] = None
+    # Dormitorios. A monoambiente has 0; None means the site did not say.
+    bedrooms: Optional[int] = None
+    # True/False only when the listing states it; None when it is silent.
+    furnished: Optional[bool] = None
     expensas: Optional[float] = None
     expensas_currency: Optional[str] = None
     published_at: Optional[datetime] = None

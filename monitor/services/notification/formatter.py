@@ -45,6 +45,10 @@ def format_area(area: Optional[float]) -> str:
     return f"{area:.1f} m²"
 
 
+def _yes_no(value: bool) -> str:
+    return "yes" if value else "no"
+
+
 def format_listing(listing: Listing, detected_at: Optional[datetime] = None) -> str:
     """Single-listing notification, HTML formatted for Telegram."""
     lines = [
@@ -59,6 +63,10 @@ def format_listing(listing: Listing, detected_at: Optional[datetime] = None) -> 
     ]
     if listing.rooms:
         lines.append(f"Ambientes: {listing.rooms}")
+    if listing.bedrooms is not None:
+        lines.append(f"Bedrooms: {listing.bedrooms}")
+    if listing.furnished is not None:
+        lines.append(f"Furnished: {_yes_no(listing.furnished)}")
     if listing.expensas:
         lines.append(
             "Expensas: {0}".format(
@@ -117,6 +125,8 @@ def format_group(items: Sequence[StoredListing], detected_at: Optional[datetime]
         ]
         if listing.rooms:
             details.append(f"{listing.rooms} amb.")
+        if listing.furnished:
+            details.append("furnished")
         if listing.expensas:
             details.append(
                 "expensas {0}".format(
@@ -152,6 +162,10 @@ def _plain_listing(listing: Listing, detected_at: Optional[datetime] = None) -> 
     ]
     if listing.rooms:
         lines.append(f"Ambientes: {listing.rooms}")
+    if listing.bedrooms is not None:
+        lines.append(f"Bedrooms: {listing.bedrooms}")
+    if listing.furnished is not None:
+        lines.append(f"Furnished: {_yes_no(listing.furnished)}")
     if listing.expensas:
         lines.append(
             f"Expensas: {format_money(listing.expensas, listing.expensas_currency or 'ARS')}"
@@ -179,6 +193,10 @@ def _email_listing_card(listing: Listing) -> str:
     ]
     if listing.rooms:
         rows.append(_email_row("Ambientes", str(listing.rooms)))
+    if listing.bedrooms is not None:
+        rows.append(_email_row("Bedrooms", str(listing.bedrooms)))
+    if listing.furnished is not None:
+        rows.append(_email_row("Furnished", _yes_no(listing.furnished)))
     if listing.expensas:
         rows.append(
             _email_row(

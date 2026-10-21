@@ -19,8 +19,10 @@ from bs4 import BeautifulSoup
 from monitor.models.listing import Listing, Operation, PropertyType
 from monitor.neighborhoods import NeighborhoodResolver
 from monitor.scrapers.parsing import (
+    bedrooms_from_rooms,
     normalize_spaces,
     parse_area,
+    parse_furnished,
     parse_number,
     parse_operation,
     parse_price,
@@ -143,6 +145,12 @@ def parse_search_page(
             area = covered_area
         if rooms is None:
             rooms = parse_rooms(card.get("ambientes") or "")
+        dormitorios = (card.get("dormitorios") or "").strip()
+        bedrooms = int(dormitorios) if dormitorios.isdigit() else bedrooms_from_rooms(rooms)
+        info_node = card.select_one(".card__info")
+        furnished = parse_furnished(
+            title, normalize_spaces(info_node.get_text(" ")) if info_node else None
+        )
 
         listings.append(
             Listing(
@@ -159,6 +167,8 @@ def parse_search_page(
                 currency=currency,
                 area_m2=area,
                 rooms=rooms,
+                bedrooms=bedrooms,
+                furnished=furnished,
                 expensas=expensas,
                 expensas_currency=expensas_currency,
                 published_at=None,

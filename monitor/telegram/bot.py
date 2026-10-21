@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional
 
 import requests
 
-from monitor.config import Config, SearchCriteria
+from monitor.config import BEDROOMS_OR_MORE, Config, SearchCriteria
 from monitor.database import Database
 from monitor.logging_setup import log_context
 from monitor.models.listing import PropertyType
@@ -57,6 +57,19 @@ class Reply:
     keyboard: Optional[Keyboard] = None
     # Shown briefly on top of the chat when answering a button press.
     toast: Optional[str] = None
+
+
+FURNISHED_LABELS = {"any": "Any", "yes": "Furnished only", "no": "Unfurnished only"}
+
+
+def bedrooms_label(value: int) -> str:
+    if value == 0:
+        return "Mono"
+    return f"{value}+" if value == BEDROOMS_OR_MORE else str(value)
+
+
+def describe_bedrooms(criteria: SearchCriteria) -> str:
+    return ", ".join(bedrooms_label(b) for b in criteria.bedrooms) or "any"
 
 
 def _amount(value: float) -> str:
@@ -194,6 +207,8 @@ class TelegramCommandBot(threading.Thread):
                     ",", "."
                 ),
                 f"Min area: {criteria.min_area_m2:g} m²",
+                f"Bedrooms: {describe_bedrooms(criteria)}",
+                f"Furnished: {FURNISHED_LABELS[criteria.furnished].lower()}",
                 f"Checked every {self.config.check_interval_seconds / 60:g} minutes",
                 "",
                 "Commands: /settings · /status · /stop",
@@ -219,6 +234,8 @@ class TelegramCommandBot(threading.Thread):
                 ",", "."
             ),
             f"Min area: {criteria.min_area_m2:g} m²",
+            f"Bedrooms: {describe_bedrooms(criteria)}",
+            f"Furnished: {FURNISHED_LABELS[criteria.furnished].lower()}",
         ]
         return "\n".join(lines)
 
@@ -237,6 +254,8 @@ class TelegramCommandBot(threading.Thread):
             "Types: {0}".format(escape(", ".join(t.value for t in criteria.property_types))),
             f"Max rent: {_amount(criteria.max_rent)} {criteria.currency} (expensas excluded)",
             f"Min area: {criteria.min_area_m2:g} m²",
+            f"Bedrooms: {describe_bedrooms(criteria)}",
+            f"Furnished: {FURNISHED_LABELS[criteria.furnished].lower()}",
             "",
             "Tap what you want to change.",
         ]
@@ -245,6 +264,7 @@ class TelegramCommandBot(threading.Thread):
         keyboard = [
             [_button("📍 Neighborhoods", "s:hoods"), _button("🏠 Types", "s:types")],
             [_button("💰 Max rent", "s:rent"), _button("📐 Min area", "s:area")],
+            [_button("🛏 Bedrooms", "s:beds"), _button("🛋 Furnished", "s:furn")],
             [_button("✅ Done", "s:done")],
         ]
         return Reply("\n".join(lines), keyboard)
@@ -266,6 +286,39 @@ class TelegramCommandBot(threading.Thread):
         ]
         keyboard = [buttons, [_button("⬅️ Back", "s:menu")]]
         return Reply("🏠 <b>Property types</b>\n\nTap to add or remove.", keyboard)
+
+    def _bedrooms_reply(self, chat_id: str) -> Reply:
+        chosen = self._criteria(chat_id).bedrooms
+        buttons = [
+            _button(("✅ " if value in chosen else "▫️ ") + bedrooms_label(value), f"b:{value}")
+            for value in range(BEDROOMS_OR_MORE + 1)
+        ]
+        keyboard = [
+            buttons,
+            [_button(("✅ " if not chosen else "▫️ ") + "Any", "b:any")],
+            [_button("⬅️ Back", "s:menu")],
+        ]
+        text = (
+            "🛏 <b>Bedrooms</b> (dormitorios)\n\nTap the counts you want; Mono is a "
+            "monoambiente. Where a site lists only ambientes, bedrooms are ambientes - 1. "
+            "Ads that do not say are still sent."
+        )
+        return Reply(text, keyboard)
+
+    def _furnished_reply(self, chat_id: str) -> Reply:
+        current = self._criteria(chat_id).furnished
+        keyboard = [
+            [
+                _button(("✅ " if value == current else "▫️ ") + label, f"f:{value}")
+                for value, label in FURNISHED_LABELS.items()
+            ],
+            [_button("⬅️ Back", "s:menu")],
+        ]
+        text = (
+            "🛋 <b>Furnished (amoblado)</b>\n\nHides ads that say the opposite. "
+            "Most ads do not say; those are still sent."
+        )
+        return Reply(text, keyboard)
 
     def _rent_reply(self, chat_id: str) -> Reply:
         criteria = self._criteria(chat_id)
@@ -309,6 +362,10 @@ class TelegramCommandBot(threading.Thread):
                 return self._rent_reply(chat_id)
             if value == "area":
                 return self._area_reply(chat_id)
+            if value == "beds":
+                return self._bedrooms_reply(chat_id)
+            if value == "furn":
+                return self._furnished_reply(chat_id)
             if value == "done":
                 reply = self.settings_reply(chat_id)
                 text = reply.text.replace("Tap what you want to change.", "/settings to change it.")
@@ -341,6 +398,21 @@ class TelegramCommandBot(threading.Thread):
                 chosen_types.append(value)
             self._update(chat_id, property_types=chosen_types)
             return self._types_reply(chat_id)
+
+        if kind == "b" and (value == "any" or (value.isdigit() and int(value) <= BEDROOMS_OR_MORE)):
+            beds = list(self._criteria(chat_id).bedrooms)
+            if value == "any":
+                beds = []
+            elif int(value) in beds:
+                beds.remove(int(value))
+            else:
+                beds.append(int(value))
+            self._update(chat_id, bedrooms=beds)
+            return self._bedrooms_reply(chat_id)
+
+        if kind == "f" and value in FURNISHED_LABELS:
+            self._update(chat_id, furnished=value)
+            return self.settings_reply(chat_id, note="✅ Furnished updated")
 
         if kind == "r" and value.isdigit():
             self._update(chat_id, max_rent=float(value))
