@@ -1,23 +1,5 @@
 """Telegram command replies."""
 
-import pytest
-
-from monitor.config import Config, SearchCriteria, SourceConfig, TelegramConfig
-from monitor.telegram import TelegramCommandBot
-
-
-@pytest.fixture
-def bot(database):
-    config = Config(
-        criteria=SearchCriteria(),
-        telegram=TelegramConfig(bot_token="t", chat_id="42"),
-        sources={
-            "mercadolibre": SourceConfig(name="mercadolibre"),
-            "argenprop": SourceConfig(name="argenprop"),
-        },
-    )
-    return TelegramCommandBot(config, database)
-
 
 def test_start_describes_the_current_search(bot):
     message = bot.handle_command("/start")

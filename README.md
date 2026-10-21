@@ -300,10 +300,13 @@ start then treats every current listing as already-seen (because
 .venv/bin/python -m pytest -q
 .venv/bin/python -m ruff check .
 .venv/bin/python -m ruff format --check .
+# Coverage, with the lines no test runs:
+.venv/bin/python -m pytest -q --cov=monitor --cov-report=term-missing
 ```
 
 The parser tests run against HTML captured from the live sites
-(`tests/fixtures/`), so they never touch the network.
+(`tests/fixtures/`), so they never touch the network. Nothing else does
+either: scrapers, Telegram and the entry point are tested against fakes.
 
 ---
 

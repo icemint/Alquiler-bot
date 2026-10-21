@@ -278,28 +278,6 @@ class Database:
             ).fetchone()
         return row is not None
 
-    def count_new_since(self, since: datetime, matched_only: bool = False) -> int:
-        query = "SELECT COUNT(*) AS n FROM listings WHERE first_seen_at >= ?"
-        if matched_only:
-            query += " AND matched = 1"
-        with self._lock:
-            row = self._conn.execute(query, (to_iso(since),)).fetchone()
-        return int(row["n"])
-
-    def count_notified_since(self, since: datetime) -> int:
-        with self._lock:
-            row = self._conn.execute(
-                "SELECT COUNT(*) AS n FROM listings WHERE notified_at >= ?", (to_iso(since),)
-            ).fetchone()
-        return int(row["n"])
-
-    def counts_by_source(self) -> Dict[str, int]:
-        with self._lock:
-            rows = self._conn.execute(
-                "SELECT source, COUNT(*) AS n FROM listings GROUP BY source"
-            ).fetchall()
-        return {row["source"]: int(row["n"]) for row in rows}
-
     # ------------------------------------------------------------------ cycles
 
     def start_cycle(self, started_at: Optional[datetime] = None) -> int:
@@ -349,13 +327,6 @@ class Database:
                 "SELECT * FROM cycles WHERE finished_at IS NOT NULL AND sources_ok > 0 "
                 "ORDER BY id DESC LIMIT 1"
             ).fetchone()
-
-    def cycles_since(self, since: datetime) -> int:
-        with self._lock:
-            row = self._conn.execute(
-                "SELECT COUNT(*) AS n FROM cycles WHERE started_at >= ?", (to_iso(since),)
-            ).fetchone()
-        return int(row["n"])
 
     # ------------------------------------------------------------------ source state
 
