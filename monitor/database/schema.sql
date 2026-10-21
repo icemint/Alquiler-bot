@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS listings (
     currency             TEXT,
     area_m2              REAL,
     rooms                INTEGER,
+    bedrooms             INTEGER,
+    furnished            INTEGER,
     expensas             REAL,
     expensas_currency    TEXT,
     published_at         TEXT,

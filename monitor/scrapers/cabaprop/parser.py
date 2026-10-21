@@ -7,7 +7,9 @@ parse: every field we need is structured. Codes observed live on 2026-10-21:
   (0 or absent = not given);
 * ``property_type``: 1 = Departamento, 2 = Casa, 3 = PH;
 * ``operation_type``: 1 = venta, 2 = alquiler, 3 = temporario;
-* ``location.barrios``: CabaProp barrio ids, most specific last.
+* ``location.barrios``: CabaProp barrio ids, most specific last;
+* ``publication.attributes``: the MercadoLibre attributes of the same ad, when
+  the broker also published it there (``FURNISHED``: "Sí"/"No").
 """
 
 from __future__ import annotations
@@ -19,6 +21,7 @@ from typing import Any, Dict, List, Optional
 from monitor.models.listing import Listing, Operation, PropertyType
 from monitor.neighborhoods import NeighborhoodResolver
 from monitor.scrapers.base import FetchError
+from monitor.scrapers.parsing import bedrooms_from_rooms, parse_furnished
 from monitor.timeutil import from_iso
 
 logger = logging.getLogger(__name__)
@@ -37,6 +40,37 @@ def _positive(value: Any) -> Optional[float]:
     except (TypeError, ValueError):
         return None
     return number if number > 0 else None
+
+
+def _meli_attribute(item: Dict[str, Any], attribute_id: str) -> Optional[str]:
+    for attribute in (item.get("publication") or {}).get("attributes") or []:
+        if attribute.get("id") == attribute_id:
+            return attribute.get("value_name")
+    return None
+
+
+def _bedrooms(item: Dict[str, Any], rooms: Optional[int]) -> Optional[int]:
+    # 0 is a real answer here (a monoambiente), unlike for prices and areas.
+    for value in (
+        (item.get("characteristics") or {}).get("bedrooms"),
+        _meli_attribute(item, "BEDROOMS"),
+    ):
+        try:
+            number = int(value)  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            continue
+        if number >= 0:
+            return number
+    return bedrooms_from_rooms(rooms)
+
+
+def _furnished(item: Dict[str, Any]) -> Optional[bool]:
+    stated = (_meli_attribute(item, "FURNISHED") or "").strip().lower()
+    if stated in ("sí", "si"):
+        return True
+    if stated == "no":
+        return False
+    return parse_furnished(item.get("title"), item.get("description"))
 
 
 def _created_at(value: Any):
@@ -65,7 +99,8 @@ def item_to_listing(item: Dict[str, Any], resolver: NeighborhoodResolver) -> Lis
 
     expensas = _positive(price.get("expenses"))
     area = _positive(surface.get("totalSurface")) or _positive(surface.get("coveredSurface"))
-    rooms = characteristics.get("ambience")
+    ambience = characteristics.get("ambience")
+    rooms = int(ambience) if isinstance(ambience, (int, float)) and ambience > 0 else None
 
     return Listing(
         source=SOURCE,
@@ -82,7 +117,9 @@ def item_to_listing(item: Dict[str, Any], resolver: NeighborhoodResolver) -> Lis
         # listing instead of comparing a USD amount against an ARS limit.
         currency=CURRENCIES.get(price.get("currency")),
         area_m2=area,
-        rooms=int(rooms) if isinstance(rooms, (int, float)) and rooms > 0 else None,
+        rooms=rooms,
+        bedrooms=_bedrooms(item, rooms),
+        furnished=_furnished(item),
         expensas=expensas,
         expensas_currency=CURRENCIES.get(price.get("expensesCurrency")) if expensas else None,
         published_at=_created_at(item.get("created_at")),

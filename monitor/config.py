@@ -88,6 +88,11 @@ def _list(name: str, default: List[str]) -> List[str]:
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
+# The last bedroom option means "this many or more".
+BEDROOMS_OR_MORE = 4
+FURNISHED_OPTIONS = ("any", "yes", "no")
+
+
 @dataclass
 class SearchCriteria:
     max_rent: float = 1_000_000.0
@@ -99,6 +104,12 @@ class SearchCriteria:
     )
     # Expensas are explicitly NOT part of the price filter.
     include_expensas_in_price: bool = False
+    # Accepted bedroom counts (0 = monoambiente, BEDROOMS_OR_MORE = that or
+    # more). Empty means any.
+    bedrooms: List[int] = field(default_factory=list)
+    # "yes": only listings that say they are furnished; "no": drop those
+    # that say so; "any": no filter.
+    furnished: str = "any"
 
     def describe(self) -> str:
         # Only the amount takes Argentine thousands separators - applying the
@@ -106,10 +117,15 @@ class SearchCriteria:
         price = f"{self.max_rent:,.0f}".replace(",", ".")
         types = "/".join(t.value for t in self.property_types)
         hoods = ", ".join(self.neighborhoods)
-        return (
+        text = (
             f"alquiler | {types} | {hoods} | area >= {self.min_area_m2:g} m2 | "
             f"price <= {price} {self.currency} (expensas excluded)"
         )
+        if self.bedrooms:
+            text += " | bedrooms " + ",".join(str(b) for b in self.bedrooms)
+        if self.furnished != "any":
+            text += f" | furnished={self.furnished}"
+        return text
 
     def to_dict(self) -> Dict[str, Any]:
         """The part a subscriber can change, as stored in the database."""
@@ -118,6 +134,8 @@ class SearchCriteria:
             "min_area_m2": self.min_area_m2,
             "neighborhoods": list(self.neighborhoods),
             "property_types": [t.value for t in self.property_types],
+            "bedrooms": list(self.bedrooms),
+            "furnished": self.furnished,
         }
 
     def with_changes(self, data: Dict[str, Any]) -> SearchCriteria:
@@ -134,6 +152,14 @@ class SearchCriteria:
             min_area = float(data.get("min_area_m2") or self.min_area_m2)
         except (TypeError, ValueError):
             max_rent, min_area = self.max_rent, self.min_area_m2
+        # An empty list is a real choice ("any"), so only a missing key
+        # keeps the current value.
+        bedrooms = list(self.bedrooms)
+        if isinstance(data.get("bedrooms"), list):
+            bedrooms = sorted(
+                {b for b in data["bedrooms"] if isinstance(b, int) and 0 <= b <= BEDROOMS_OR_MORE}
+            )
+        furnished = data.get("furnished")
         return SearchCriteria(
             max_rent=max_rent,
             min_area_m2=min_area,
@@ -141,6 +167,8 @@ class SearchCriteria:
             neighborhoods=list(data.get("neighborhoods") or self.neighborhoods),
             property_types=types or list(self.property_types),
             include_expensas_in_price=self.include_expensas_in_price,
+            bedrooms=bedrooms,
+            furnished=furnished if furnished in FURNISHED_OPTIONS else self.furnished,
         )
 
     @staticmethod
@@ -153,6 +181,11 @@ class SearchCriteria:
         for search in searches:
             neighborhoods.extend(n for n in search.neighborhoods if n not in neighborhoods)
             types.extend(t for t in search.property_types if t not in types)
+        # One subscriber without a bedroom filter makes the union unfiltered.
+        bedrooms: List[int] = []
+        if all(search.bedrooms for search in searches):
+            bedrooms = sorted({b for search in searches for b in search.bedrooms})
+        furnished = {search.furnished for search in searches}
         return SearchCriteria(
             max_rent=max(s.max_rent for s in searches),
             min_area_m2=min(s.min_area_m2 for s in searches),
@@ -160,6 +193,8 @@ class SearchCriteria:
             neighborhoods=neighborhoods,
             property_types=types,
             include_expensas_in_price=first.include_expensas_in_price,
+            bedrooms=bedrooms,
+            furnished=furnished.pop() if len(furnished) == 1 else "any",
         )
 
 

@@ -30,7 +30,8 @@ before. The SQLite database makes that memory survive restarts.
 - Lets anyone subscribe: `/start` in the bot subscribes a chat, `/stop`
   unsubscribes; `/status` shows when the sites were last checked.
 - Gives every subscriber their own search: `/settings` changes neighborhoods,
-  property types, maximum rent and minimum area with buttons.
+  property types, maximum rent, minimum area, bedrooms and furnished with
+  buttons.
 
 ### What it deliberately does *not* do
 
@@ -307,14 +308,30 @@ The parser tests run against HTML captured from the live sites
 ## 8. Changing the search criteria
 
 Each subscriber sets their own search in the bot with `/settings`: tap
-neighborhoods and property types on or off, and pick a maximum rent and a
-minimum area from the buttons or type a number. The search is stored per chat in
+neighborhoods and property types on or off, pick a maximum rent and a minimum
+area from the buttons or type a number, and optionally narrow by bedrooms and
+furnished. The search is stored per chat in
 the `subscriber_criteria` table, and takes effect from the next cycle.
 
 The sites are asked once per cycle for the union of all active subscribers'
 searches (every neighborhood and type anyone chose, the highest rent limit, the
 smallest area); each subscriber's own filter then picks their listings out of
 that. `deliveries` records which listing went to which chat.
+
+**Bedrooms** (dormitorios) are taken from CabaProp's `bedrooms` field and
+ArgenProp's `dormitorios` card attribute. MercadoLibre's search cards show only
+ambientes, so there bedrooms = ambientes − 1 (a monoambiente has 0). The last
+option, `4+`, means four or more.
+
+**Furnished** (amoblado) comes from CabaProp's MercadoLibre `FURNISHED`
+attribute when the ad has one; otherwise from what the title or description
+says ("amoblado", "amueblado", "con muebles"; "sin muebles", "no amoblado").
+Semi-amoblado counts as furnished.
+
+Both filters only drop listings that state something else. When an ad does not
+say how many bedrooms it has or whether it is furnished, it is still notified
+and the subscriber decides from the ad itself. (Price and area are different:
+a listing whose price or area cannot be read is never notified.)
 
 When a subscriber widens the search (a new neighborhood, a higher rent limit),
 the sites start returning listings that have been there all along. On that

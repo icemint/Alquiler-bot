@@ -23,6 +23,12 @@ logger = logging.getLogger(__name__)
 
 SCHEMA_PATH = os.path.join(os.path.dirname(__file__), "schema.sql")
 
+# Columns added after the first release. CREATE TABLE IF NOT EXISTS leaves an
+# existing table alone, so older databases get them through ALTER TABLE.
+ADDED_COLUMNS = {
+    "listings": {"bedrooms": "INTEGER", "furnished": "INTEGER"},
+}
+
 
 @dataclass
 class StoredListing:
@@ -60,6 +66,8 @@ def _row_to_stored(row: sqlite3.Row) -> StoredListing:
         currency=row["currency"],
         area_m2=row["area_m2"],
         rooms=row["rooms"],
+        bedrooms=row["bedrooms"],
+        furnished=None if row["furnished"] is None else bool(row["furnished"]),
         expensas=row["expensas"],
         expensas_currency=row["expensas_currency"],
         published_at=from_iso(row["published_at"]),
@@ -96,6 +104,13 @@ class Database:
             self._conn.execute("PRAGMA journal_mode=WAL")
             self._conn.execute("PRAGMA foreign_keys=ON")
             self._conn.executescript(schema)
+            for table, columns in ADDED_COLUMNS.items():
+                existing = {
+                    row["name"] for row in self._conn.execute(f"PRAGMA table_info({table})")
+                }
+                for name, kind in columns.items():
+                    if name not in existing:
+                        self._conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {kind}")
             self._conn.commit()
 
     def close(self) -> None:
@@ -133,6 +148,8 @@ class Database:
             "currency": listing.currency,
             "area_m2": listing.area_m2,
             "rooms": listing.rooms,
+            "bedrooms": listing.bedrooms,
+            "furnished": None if listing.furnished is None else int(listing.furnished),
             "expensas": listing.expensas,
             "expensas_currency": listing.expensas_currency,
             "published_at": to_iso(listing.published_at),
@@ -162,6 +179,8 @@ class Database:
                            currency = :currency,
                            area_m2 = COALESCE(:area_m2, area_m2),
                            rooms = COALESCE(:rooms, rooms),
+                           bedrooms = COALESCE(:bedrooms, bedrooms),
+                           furnished = COALESCE(:furnished, furnished),
                            expensas = :expensas,
                            expensas_currency = :expensas_currency,
                            neighborhood = COALESCE(:neighborhood, neighborhood),
