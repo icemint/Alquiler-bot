@@ -903,63 +903,112 @@
      "slugs": {
       "mercadolibre": [
        "bsas-gba-sur/almirante-brown"
+      ],
+      "argenprop": [
+       "partido-de-almirante-brown"
       ]
      },
-     "ids": {}
+     "ids": {
+      "argenprop": [
+       "partido:6"
+      ]
+     }
     },
     "Avellaneda": {
      "aliases": [],
      "slugs": {
       "mercadolibre": [
        "bsas-gba-sur/avellaneda"
+      ],
+      "argenprop": [
+       "partido-de-avellaneda"
       ]
      },
-     "ids": {}
+     "ids": {
+      "argenprop": [
+       "partido:8"
+      ]
+     }
     },
     "Berazategui": {
      "aliases": [],
      "slugs": {
       "mercadolibre": [
        "bsas-gba-sur/berazategui"
+      ],
+      "argenprop": [
+       "partido-de-berazategui"
       ]
      },
-     "ids": {}
+     "ids": {
+      "argenprop": [
+       "partido:15"
+      ]
+     }
     },
     "Escobar": {
      "aliases": [],
      "slugs": {
       "mercadolibre": [
        "bsas-gba-norte/escobar"
+      ],
+      "argenprop": [
+       "partido-de-escobar"
       ]
      },
-     "ids": {}
+     "ids": {
+      "argenprop": [
+       "partido:39"
+      ]
+     }
     },
     "Esteban Echeverría": {
      "aliases": [],
      "slugs": {
       "mercadolibre": [
        "bsas-gba-sur/esteban-echeverria"
+      ],
+      "argenprop": [
+       "partido-de-esteban-echeverria"
       ]
      },
-     "ids": {}
+     "ids": {
+      "argenprop": [
+       "partido:40"
+      ]
+     }
     },
     "Ezeiza": {
      "aliases": [],
      "slugs": {
       "mercadolibre": [
        "bsas-gba-sur/ezeiza"
+      ],
+      "argenprop": [
+       "partido-de-ezeiza"
       ]
      },
-     "ids": {}
+     "ids": {
+      "argenprop": [
+       "partido:42"
+      ]
+     }
     },
     "Florencio Varela": {
      "aliases": [],
      "slugs": {
       "mercadolibre": [
        "bsas-gba-sur/florencio-varela"
+      ],
+      "argenprop": [
+       "partido-de-florencio-varela"
       ]
      },
-     "ids": {}
+     "ids": {
+      "argenprop": [
+       "partido:43"
+      ]
+     }
     },
     "General Rodríguez": {
      "aliases": [
@@ -968,9 +1017,16 @@
      "slugs": {
       "mercadolibre": [
        "bsas-gba-oeste/general-rodriguez"
+      ],
+      "argenprop": [
+       "partido-de-general-rodriguez"
       ]
      },
-     "ids": {}
+     "ids": {
+      "argenprop": [
+       "partido:57"
+      ]
+     }
     },
     "General San Martín": {
      "aliases": [
@@ -980,90 +1036,160 @@
      "slugs": {
       "mercadolibre": [
        "bsas-gba-norte/general-san-martin"
+      ],
+      "argenprop": [
+       "partido-de-general-san-martin"
       ]
      },
-     "ids": {}
+     "ids": {
+      "argenprop": [
+       "partido:58"
+      ]
+     }
     },
     "Hurlingham": {
      "aliases": [],
      "slugs": {
       "mercadolibre": [
        "bsas-gba-oeste/hurlingham"
+      ],
+      "argenprop": [
+       "partido-de-hurlingham"
       ]
      },
-     "ids": {}
+     "ids": {
+      "argenprop": [
+       "partido:63"
+      ]
+     }
     },
     "Ituzaingó": {
      "aliases": [],
      "slugs": {
       "mercadolibre": [
        "bsas-gba-oeste/ituzaingo"
+      ],
+      "argenprop": [
+       "partido-de-ituzaingo"
       ]
      },
-     "ids": {}
+     "ids": {
+      "argenprop": [
+       "partido:64"
+      ]
+     }
     },
     "José C. Paz": {
      "aliases": [],
      "slugs": {
       "mercadolibre": [
        "bsas-gba-norte/jose-c-paz"
+      ],
+      "argenprop": [
+       "partido-de-jose-c-paz"
       ]
      },
-     "ids": {}
+     "ids": {
+      "argenprop": [
+       "partido:65"
+      ]
+     }
     },
     "La Matanza": {
      "aliases": [],
      "slugs": {
       "mercadolibre": [
        "bsas-gba-oeste/la-matanza"
+      ],
+      "argenprop": [
+       "partido-de-la-matanza"
       ]
      },
-     "ids": {}
+     "ids": {
+      "argenprop": [
+       "partido:67"
+      ]
+     }
     },
     "Lanús": {
      "aliases": [],
      "slugs": {
       "mercadolibre": [
        "bsas-gba-sur/lanus"
+      ],
+      "argenprop": [
+       "partido-de-lanus"
       ]
      },
-     "ids": {}
+     "ids": {
+      "argenprop": [
+       "partido:69"
+      ]
+     }
     },
     "Lomas de Zamora": {
      "aliases": [],
      "slugs": {
       "mercadolibre": [
        "bsas-gba-sur/lomas-de-zamora"
+      ],
+      "argenprop": [
+       "partido-de-lomas-de-zamora"
       ]
      },
-     "ids": {}
+     "ids": {
+      "argenprop": [
+       "partido:76"
+      ]
+     }
     },
     "Malvinas Argentinas": {
      "aliases": [],
      "slugs": {
       "mercadolibre": [
        "bsas-gba-norte/malvinas-argentinas"
+      ],
+      "argenprop": [
+       "partido-de-malvinas-argentinas"
       ]
      },
-     "ids": {}
+     "ids": {
+      "argenprop": [
+       "partido:80"
+      ]
+     }
     },
     "Merlo": {
      "aliases": [],
      "slugs": {
       "mercadolibre": [
        "bsas-gba-oeste/merlo"
+      ],
+      "argenprop": [
+       "partido-de-merlo"
       ]
      },
-     "ids": {}
+     "ids": {
+      "argenprop": [
+       "partido:84"
+      ]
+     }
     },
     "Moreno": {
      "aliases": [],
      "slugs": {
       "mercadolibre": [
        "bsas-gba-oeste/moreno"
+      ],
+      "argenprop": [
+       "partido-de-moreno"
       ]
      },
-     "ids": {}
+     "ids": {
+      "argenprop": [
+       "partido:87"
+      ]
+     }
     },
     "Morón": {
      "aliases": [
@@ -1073,9 +1199,16 @@
       "mercadolibre": [
        "bsas-gba-oeste/castelar",
        "bsas-gba-oeste/moron"
+      ],
+      "argenprop": [
+       "partido-de-moron"
       ]
      },
-     "ids": {}
+     "ids": {
+      "argenprop": [
+       "partido:88"
+      ]
+     }
     },
     "Pilar": {
      "aliases": [
@@ -1085,36 +1218,64 @@
       "mercadolibre": [
        "bsas-gba-norte/del-viso",
        "bsas-gba-norte/pilar"
+      ],
+      "argenprop": [
+       "partido-de-pilar"
       ]
      },
-     "ids": {}
+     "ids": {
+      "argenprop": [
+       "partido:97"
+      ]
+     }
     },
     "Presidente Perón": {
      "aliases": [],
      "slugs": {
       "mercadolibre": [
        "bsas-gba-sur/presidente-peron"
+      ],
+      "argenprop": [
+       "partido-de-presidente-peron"
       ]
      },
-     "ids": {}
+     "ids": {
+      "argenprop": [
+       "partido:99"
+      ]
+     }
     },
     "Quilmes": {
      "aliases": [],
      "slugs": {
       "mercadolibre": [
        "bsas-gba-sur/quilmes"
+      ],
+      "argenprop": [
+       "partido-de-quilmes"
       ]
      },
-     "ids": {}
+     "ids": {
+      "argenprop": [
+       "partido:102"
+      ]
+     }
     },
     "San Fernando": {
      "aliases": [],
      "slugs": {
       "mercadolibre": [
        "bsas-gba-norte/san-fernando"
+      ],
+      "argenprop": [
+       "partido-de-san-fernando"
       ]
      },
-     "ids": {}
+     "ids": {
+      "argenprop": [
+       "partido:115"
+      ]
+     }
     },
     "San Isidro": {
      "aliases": [
@@ -1124,27 +1285,48 @@
       "mercadolibre": [
        "bsas-gba-norte/beccar",
        "bsas-gba-norte/san-isidro"
+      ],
+      "argenprop": [
+       "partido-de-san-isidro"
       ]
      },
-     "ids": {}
+     "ids": {
+      "argenprop": [
+       "partido:116"
+      ]
+     }
     },
     "San Miguel": {
      "aliases": [],
      "slugs": {
       "mercadolibre": [
        "bsas-gba-norte/san-miguel"
+      ],
+      "argenprop": [
+       "partido-de-san-miguel"
       ]
      },
-     "ids": {}
+     "ids": {
+      "argenprop": [
+       "partido:117"
+      ]
+     }
     },
     "Tigre": {
      "aliases": [],
      "slugs": {
       "mercadolibre": [
        "bsas-gba-norte/tigre"
+      ],
+      "argenprop": [
+       "partido-de-tigre"
       ]
      },
-     "ids": {}
+     "ids": {
+      "argenprop": [
+       "partido:124"
+      ]
+     }
     },
     "Tres de Febrero": {
      "aliases": [
@@ -1154,18 +1336,32 @@
       "mercadolibre": [
        "bsas-gba-oeste/caseros",
        "bsas-gba-oeste/tres-de-febrero"
+      ],
+      "argenprop": [
+       "partido-de-tres-de-febrero"
       ]
      },
-     "ids": {}
+     "ids": {
+      "argenprop": [
+       "partido:129"
+      ]
+     }
     },
     "Vicente López": {
      "aliases": [],
      "slugs": {
       "mercadolibre": [
        "bsas-gba-norte/vicente-lopez"
+      ],
+      "argenprop": [
+       "partido-de-vicente-lopez"
       ]
      },
-     "ids": {}
+     "ids": {
+      "argenprop": [
+       "partido:131"
+      ]
+     }
     }
    }
   },
@@ -1175,10 +1371,14 @@
     "mercadolibre": [
      "bsas-gba-sur/la-plata"
     ],
-    "argenprop": []
+    "argenprop": [
+     "partido-de-la-plata"
+    ]
    },
    "ids": {
-    "argenprop": []
+    "argenprop": [
+     "partido:68"
+    ]
    },
    "barrios": {
     "Altos de San Lorenzo": {
@@ -1297,10 +1497,14 @@
     "mercadolibre": [
      "santa-fe/rosario"
     ],
-    "argenprop": []
+    "argenprop": [
+     "rosario"
+    ]
    },
    "ids": {
-    "argenprop": []
+    "argenprop": [
+     "partido:460"
+    ]
    },
    "barrios": {
     "Abasto": {
@@ -1545,10 +1749,14 @@
     "mercadolibre": [
      "cordoba/cordoba"
     ],
-    "argenprop": []
+    "argenprop": [
+     "cordoba"
+    ]
    },
    "ids": {
-    "argenprop": []
+    "argenprop": [
+     "partido:193"
+    ]
    },
    "barrios": {
     "Alberdi": {
@@ -2644,7 +2852,9 @@
      "mendoza/lujan-de-cuyo",
      "mendoza/maipu"
     ],
-    "argenprop": []
+    "argenprop": [
+     "mendoza"
+    ]
    },
    "ids": {
     "argenprop": []
@@ -2655,27 +2865,48 @@
      "slugs": {
       "mercadolibre": [
        "mendoza/mendoza"
+      ],
+      "argenprop": [
+       "mendoza"
       ]
      },
-     "ids": {}
+     "ids": {
+      "argenprop": [
+       "partido:326"
+      ]
+     }
     },
     "Godoy Cruz": {
      "aliases": [],
      "slugs": {
       "mercadolibre": [
        "mendoza/godoy-cruz"
+      ],
+      "argenprop": [
+       "godoy-cruz"
       ]
      },
-     "ids": {}
+     "ids": {
+      "argenprop": [
+       "partido:328"
+      ]
+     }
     },
     "Guaymallén": {
      "aliases": [],
      "slugs": {
       "mercadolibre": [
        "mendoza/guaymallen"
+      ],
+      "argenprop": [
+       "guaymallen"
       ]
      },
-     "ids": {}
+     "ids": {
+      "argenprop": [
+       "partido:329"
+      ]
+     }
     },
     "Las Heras": {
      "aliases": [],
@@ -2691,9 +2922,16 @@
      "slugs": {
       "mercadolibre": [
        "mendoza/lujan-de-cuyo"
+      ],
+      "argenprop": [
+       "lujan-de-cuyo"
       ]
      },
-     "ids": {}
+     "ids": {
+      "argenprop": [
+       "partido:334"
+      ]
+     }
     },
     "Maipú": {
      "aliases": [],
@@ -2702,7 +2940,11 @@
        "mendoza/maipu"
       ]
      },
-     "ids": {}
+     "ids": {
+      "argenprop": [
+       "partido:335"
+      ]
+     }
     }
    }
   },
@@ -2712,10 +2954,14 @@
     "mercadolibre": [
      "bsas-costa-atlantica/mar-del-plata"
     ],
-    "argenprop": []
+    "argenprop": [
+     "mar-del-plata"
+    ]
    },
    "ids": {
-    "argenprop": []
+    "argenprop": [
+     "partido:56"
+    ]
    },
    "barrios": {
     "Centro": {
@@ -2935,10 +3181,14 @@
     "mercadolibre": [
      "rio-negro/bariloche"
     ],
-    "argenprop": []
+    "argenprop": [
+     "bariloche"
+    ]
    },
    "ids": {
-    "argenprop": []
+    "argenprop": [
+     "partido:382"
+    ]
    },
    "barrios": {
     "Belgrano": {
@@ -3057,10 +3307,14 @@
     "mercadolibre": [
      "salta/salta"
     ],
-    "argenprop": []
+    "argenprop": [
+     "salta"
+    ]
    },
    "ids": {
-    "argenprop": []
+    "argenprop": [
+     "partido:394"
+    ]
    },
    "barrios": {
     "Centro": {
@@ -3089,10 +3343,14 @@
     "mercadolibre": [
      "neuquen/neuquen"
     ],
-    "argenprop": []
+    "argenprop": [
+     "neuquen"
+    ]
    },
    "ids": {
-    "argenprop": []
+    "argenprop": [
+     "partido:366"
+    ]
    },
    "barrios": {
     "Alta Barda": {
@@ -3196,10 +3454,14 @@
      "tucuman/san-miguel-de-tucuman",
      "tucuman/yerba-buena"
     ],
-    "argenprop": []
+    "argenprop": [
+     "san-miguel-de-tucuman"
+    ]
    },
    "ids": {
-    "argenprop": []
+    "argenprop": [
+     "partido:500"
+    ]
    },
    "barrios": {
     "Barrio Norte": {
@@ -3261,9 +3523,16 @@
      "slugs": {
       "mercadolibre": [
        "tucuman/yerba-buena"
+      ],
+      "argenprop": [
+       "yerba-buena"
       ]
      },
-     "ids": {}
+     "ids": {
+      "argenprop": [
+       "partido:515"
+      ]
+     }
     }
    }
   }

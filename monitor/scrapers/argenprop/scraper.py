@@ -9,7 +9,8 @@ backoffs. The scraper is therefore deliberately frugal:
   ``/departamentos/alquiler/barrio-norte-o-recoleta`` (robots.txt forbids
   three-way ``-o-`` combinations, two are allowed); with more barrios, or
   none (a whole city), the city's own search - ``/capital-federal`` - is
-  used and the barrios are picked out of it afterwards;
+  used and the barrios are picked out of it afterwards; AMBA has no such
+  search, so its chosen partidos are searched one by one;
 * newest-first ordering via ``?orden-masnuevos`` so page 1 holds what is new;
 * one page per property type by default, with a long delay between requests
   and its own polling interval (ARGENPROP_MIN_INTERVAL_SECONDS).
@@ -44,6 +45,10 @@ class ArgenPropScraper(BaseScraper):
                 segments.append("-o-".join(sorted(slug[0] for slug in slugs)))
                 continue
             city_slugs = self.resolver.slugs(SOURCE, city)
+            if not city_slugs:
+                # No search for the whole city (AMBA): each chosen barrio
+                # that has a search of its own, one request each.
+                city_slugs = [slug[0] for slug in slugs if slug]
             if not city_slugs:
                 self.logger.warning("no %s search for %s", SOURCE, city)
             segments.extend(slug for slug in city_slugs if slug not in segments)

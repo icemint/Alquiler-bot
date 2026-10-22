@@ -59,6 +59,26 @@ def test_argenprop_city_id_plus_label_gives_the_barrio(resolver):
     assert parse_one(card, resolver).neighborhood == "Recoleta"
 
 
+@pytest.mark.parametrize(
+    "ids,label,expected",
+    [
+        ({"idlocalidad": "1936", "idpartido": "124"}, "Nordelta", ("AMBA", "Tigre")),
+        ({"idlocalidad": "10973", "idpartido": "328"}, "Godoy Cruz", ("Mendoza", "Godoy Cruz")),
+        (
+            {"idlocalidad": "4202", "idpartido": "193"},
+            "Nueva Córdoba",
+            ("Córdoba", "Nueva Córdoba"),
+        ),
+        ({"idlocalidad": "20921", "idpartido": "500"}, "Barrio Norte", ("Tucumán", "Barrio Norte")),
+        ({"idlocalidad": "13017", "idpartido": "366"}, "Neuquén", ("Neuquén", None)),
+    ],
+)
+def test_argenprop_cards_outside_caba_find_their_city_by_partido(resolver, ids, label, expected):
+    card = argenprop_card(body=f'<p class="card__address">Calle 1, {label}</p>', **ids)
+    listing = parse_one(card, resolver)
+    assert (listing.city, listing.neighborhood) == expected
+
+
 def test_argenprop_price_from_attributes_when_the_text_has_none(resolver):
     card = argenprop_card(idmoneda="1", montooperacion="850000")
     listing = parse_one(card, resolver)
