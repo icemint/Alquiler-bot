@@ -176,6 +176,30 @@ def test_argenprop_uses_the_city_search_for_barrios_without_a_slug():
     assert scraper.segments() == ["capital-federal"]
 
 
+def argenprop_segments(cities, neighborhoods):
+    config = build_config()
+    config.criteria.cities = cities
+    config.criteria.neighborhoods = neighborhoods
+    scraper = ArgenPropScraper(
+        config, config.sources["argenprop"], NeighborhoodResolver(), HttpClient("ua")
+    )
+    return scraper.segments()
+
+
+def test_argenprop_searches_other_cities_by_their_own_slug():
+    assert argenprop_segments(["Córdoba", "Rosario"], []) == ["cordoba", "rosario"]
+    # A barrio without a slug of its own: the city's search, then its name.
+    assert argenprop_segments(["Córdoba"], ["Córdoba/Nueva Córdoba"]) == ["cordoba"]
+    assert argenprop_segments(["Tucumán"], ["Tucumán/Yerba Buena"]) == ["yerba-buena"]
+
+
+def test_argenprop_searches_amba_partidos_one_by_one_past_two():
+    two = argenprop_segments(["AMBA"], ["AMBA/Tigre", "AMBA/Pilar"])
+    assert two == ["partido-de-pilar-o-partido-de-tigre"]
+    three = argenprop_segments(["AMBA"], ["AMBA/Tigre", "AMBA/Pilar", "AMBA/Vicente López"])
+    assert three == ["partido-de-tigre", "partido-de-pilar", "partido-de-vicente-lopez"]
+
+
 # ---------------------------------------------------------------- zonaprop
 
 

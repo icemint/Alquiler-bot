@@ -402,8 +402,12 @@ What each source covers:
   Many cards outside CABA name only the city ("Necochea 80, Mendoza"); a card
   found by a barrio's own search, naming no other barrio, is counted in that
   barrio. In a whole-city search such cards stay without a barrio.
-- **ArgenProp**: CABA only for now (other cities' ids are not mapped yet; it
-  is skipped there with a warning).
+- **ArgenProp**: every city. A whole city is one newest-first search (in
+  Mendoza, the capital only); its cards are placed by ArgenProp's partido id
+  and the barrio name on the card. AMBA has no whole-area search: chosen
+  partidos are searched as one request for up to two, one request each
+  beyond that, and AMBA as a whole is skipped with a warning. Las Heras and
+  Maipú (Mendoza) have no search of their own and come from the capital's.
 - **CabaProp**: CABA only, by design of the site.
 
 A city or barrio that is not in the map is rejected at startup with an

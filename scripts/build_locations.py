@@ -15,8 +15,10 @@ What comes from where:
   hand-made ones in EXTRA_BARRIOS.
 * CabaProp: /api/v1/utils/barrios-obj (CABA only), folded the same way.
 * ArgenProp: its WAF does not tolerate crawling, so its slugs and ids below
-  were collected by hand from single search pages (2026-10-21). Barrios
-  without an id are resolved from the name on the card.
+  were collected by hand from single search pages (CABA 2026-10-21, other
+  cities 2026-10-21/22, one page per place, minutes apart). Outside CABA a
+  city or an AMBA partido is known by its partido id; barrios without an id
+  are resolved from the name on the card, within the city.
 
 Barrios a site has that do not fold into the list below are reported, not
 guessed: add them to BARRIOS (as a barrio or an alias) and run again.
@@ -223,20 +225,56 @@ CITIES: Dict[str, Dict[str, Any]] = {
             "Gran Buenos Aires",
         ],
         "mercadolibre": ["bsas-gba-norte", "bsas-gba-sur", "bsas-gba-oeste"],
+        # No search for all of AMBA: 28 partidos a cycle is more than the WAF
+        # tolerates. Chosen partidos are searched one by one.
         "argenprop": {"slugs": [], "ids": []},
         "cabaprop": False,
     },
-    "La Plata": {"aliases": [], "mercadolibre": ["bsas-gba-sur/la-plata"]},
-    "Rosario": {"aliases": [], "mercadolibre": ["santa-fe/rosario"]},
-    "Córdoba": {"aliases": [], "mercadolibre": ["cordoba/cordoba"]},
-    "Mendoza": {"aliases": [], "mercadolibre": list(EXTRA_BARRIOS["Mendoza"].values())},
-    "Mar del Plata": {"aliases": [], "mercadolibre": ["bsas-costa-atlantica/mar-del-plata"]},
-    "Bariloche": {"aliases": ["San Carlos de Bariloche"], "mercadolibre": ["rio-negro/bariloche"]},
-    "Salta": {"aliases": [], "mercadolibre": ["salta/salta"]},
-    "Neuquén": {"aliases": [], "mercadolibre": ["neuquen/neuquen"]},
+    "La Plata": {
+        "aliases": [],
+        "mercadolibre": ["bsas-gba-sur/la-plata"],
+        "argenprop": {"slugs": ["partido-de-la-plata"], "ids": ["partido:68"]},
+    },
+    "Rosario": {
+        "aliases": [],
+        "mercadolibre": ["santa-fe/rosario"],
+        "argenprop": {"slugs": ["rosario"], "ids": ["partido:460"]},
+    },
+    "Córdoba": {
+        "aliases": [],
+        "mercadolibre": ["cordoba/cordoba"],
+        "argenprop": {"slugs": ["cordoba"], "ids": ["partido:193"]},
+    },
+    "Mendoza": {
+        "aliases": [],
+        "mercadolibre": list(EXTRA_BARRIOS["Mendoza"].values()),
+        # The capital only; the other departments when chosen (see AMBA).
+        "argenprop": {"slugs": ["mendoza"], "ids": []},
+    },
+    "Mar del Plata": {
+        "aliases": [],
+        "mercadolibre": ["bsas-costa-atlantica/mar-del-plata"],
+        "argenprop": {"slugs": ["mar-del-plata"], "ids": ["partido:56"]},
+    },
+    "Bariloche": {
+        "aliases": ["San Carlos de Bariloche"],
+        "mercadolibre": ["rio-negro/bariloche"],
+        "argenprop": {"slugs": ["bariloche"], "ids": ["partido:382"]},
+    },
+    "Salta": {
+        "aliases": [],
+        "mercadolibre": ["salta/salta"],
+        "argenprop": {"slugs": ["salta"], "ids": ["partido:394"]},
+    },
+    "Neuquén": {
+        "aliases": [],
+        "mercadolibre": ["neuquen/neuquen"],
+        "argenprop": {"slugs": ["neuquen"], "ids": ["partido:366"]},
+    },
     "Tucumán": {
         "aliases": ["San Miguel de Tucumán"],
         "mercadolibre": ["tucuman/san-miguel-de-tucuman", "tucuman/yerba-buena"],
+        "argenprop": {"slugs": ["san-miguel-de-tucuman"], "ids": ["partido:500"]},
     },
 }
 # MercadoLibre's catch-all, not a barrio.
@@ -266,6 +304,45 @@ ARGENPROP_SLUGS = {
         "Villa Devoto": "villa-devoto",
         "Villa Urquiza": "villa-urquiza",
     },
+    "AMBA": {
+        "Almirante Brown": "partido-de-almirante-brown",
+        "Avellaneda": "partido-de-avellaneda",
+        "Berazategui": "partido-de-berazategui",
+        "Escobar": "partido-de-escobar",
+        "Esteban Echeverría": "partido-de-esteban-echeverria",
+        "Ezeiza": "partido-de-ezeiza",
+        "Florencio Varela": "partido-de-florencio-varela",
+        "General Rodríguez": "partido-de-general-rodriguez",
+        "General San Martín": "partido-de-general-san-martin",
+        "Hurlingham": "partido-de-hurlingham",
+        "Ituzaingó": "partido-de-ituzaingo",
+        "José C. Paz": "partido-de-jose-c-paz",
+        "La Matanza": "partido-de-la-matanza",
+        "Lanús": "partido-de-lanus",
+        "Lomas de Zamora": "partido-de-lomas-de-zamora",
+        "Malvinas Argentinas": "partido-de-malvinas-argentinas",
+        "Merlo": "partido-de-merlo",
+        "Moreno": "partido-de-moreno",
+        "Morón": "partido-de-moron",
+        "Pilar": "partido-de-pilar",
+        "Presidente Perón": "partido-de-presidente-peron",
+        "Quilmes": "partido-de-quilmes",
+        "San Fernando": "partido-de-san-fernando",
+        "San Isidro": "partido-de-san-isidro",
+        "San Miguel": "partido-de-san-miguel",
+        "Tigre": "partido-de-tigre",
+        "Tres de Febrero": "partido-de-tres-de-febrero",
+        "Vicente López": "partido-de-vicente-lopez",
+    },
+    # No working slug found for Las Heras and Maipú (both redirect to the
+    # whole country); they come from the capital's search, by card name.
+    "Mendoza": {
+        "Ciudad de Mendoza": "mendoza",
+        "Godoy Cruz": "godoy-cruz",
+        "Guaymallén": "guaymallen",
+        "Luján de Cuyo": "lujan-de-cuyo",
+    },
+    "Tucumán": {"Yerba Buena": "yerba-buena"},
 }
 ARGENPROP_IDS = {
     "CABA": {
@@ -277,6 +354,44 @@ ARGENPROP_IDS = {
         "Recoleta": ["barrio:12618"],
         "Retiro": ["barrio:12645"],
     },
+    "AMBA": {
+        "Almirante Brown": ["partido:6"],
+        "Avellaneda": ["partido:8"],
+        "Berazategui": ["partido:15"],
+        "Escobar": ["partido:39"],
+        "Esteban Echeverría": ["partido:40"],
+        "Ezeiza": ["partido:42"],
+        "Florencio Varela": ["partido:43"],
+        "General Rodríguez": ["partido:57"],
+        "General San Martín": ["partido:58"],
+        "Hurlingham": ["partido:63"],
+        "Ituzaingó": ["partido:64"],
+        "José C. Paz": ["partido:65"],
+        "La Matanza": ["partido:67"],
+        "Lanús": ["partido:69"],
+        "Lomas de Zamora": ["partido:76"],
+        "Malvinas Argentinas": ["partido:80"],
+        "Merlo": ["partido:84"],
+        "Moreno": ["partido:87"],
+        "Morón": ["partido:88"],
+        "Pilar": ["partido:97"],
+        "Presidente Perón": ["partido:99"],
+        "Quilmes": ["partido:102"],
+        "San Fernando": ["partido:115"],
+        "San Isidro": ["partido:116"],
+        "San Miguel": ["partido:117"],
+        "Tigre": ["partido:124"],
+        "Tres de Febrero": ["partido:129"],
+        "Vicente López": ["partido:131"],
+    },
+    "Mendoza": {
+        "Ciudad de Mendoza": ["partido:326"],
+        "Godoy Cruz": ["partido:328"],
+        "Guaymallén": ["partido:329"],
+        "Luján de Cuyo": ["partido:334"],
+        "Maipú": ["partido:335"],
+    },
+    "Tucumán": {"Yerba Buena": ["partido:515"]},
 }
 
 
